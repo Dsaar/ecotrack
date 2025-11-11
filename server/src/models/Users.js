@@ -11,35 +11,46 @@ const userSchema = new Schema(
 			minlength: 2,
 			maxlength: 100,
 		},
+
 		email: {
 			type: String,
 			required: true,
 			unique: true,
 			lowercase: true,
 			trim: true,
-			match:
-				// RFC2822-ish. Joi will also validate.
-				[/^\S+@\S+\.\S+$/, "Invalid email format"],
+			match: [/^\S+@\S+\.\S+$/, "Invalid email format"], // RFC2822-ish
 		},
+
 		passwordHash: {
 			type: String,
 			required: true,
 			select: false, // don’t return by default
 		},
+
 		isAdmin: {
 			type: Boolean,
 			default: false,
 		},
-		favorites: [
-			{
-				type: Schema.Types.ObjectId,
-				ref: "Item", // adjust if your favorites are another entity
-			},
-		],
+
+		avatarUrl: {
+			type: String,
+			default: "",
+		},
+
 		points: {
 			type: Number,
 			default: 0,
 			min: 0,
+		},
+
+		favorites: {
+			missions: [
+				{
+					type: Schema.Types.ObjectId,
+					ref: "Mission", // ✅ matches your new structure
+					default: [],
+				},
+			],
 		},
 	},
 	{ timestamps: true }

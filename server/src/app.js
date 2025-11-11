@@ -2,6 +2,7 @@ import express from "express";
 import cors from "cors";
 import morgan from "morgan";
 import helmet from "helmet";
+import cookieParser from "cookie-parser";
 
 // === ROUTES ===
 import authRoutes from "./routes/authRoutes.js";
@@ -18,10 +19,11 @@ app.use(helmet());
 app.use(
 	cors({
 		origin: ["http://localhost:5173"], // allow your frontend
-		credentials: false,
+		credentials: true,
 	})
 );
 app.use(express.json());
+app.use(cookieParser())
 app.use(morgan("dev"));
 
 // === HEALTHCHECK ===

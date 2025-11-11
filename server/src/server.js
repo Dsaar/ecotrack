@@ -1,10 +1,5 @@
-import path from "path";
-import { fileURLToPath } from "url";
 import dotenv from "dotenv";
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-dotenv.config({ path: path.resolve(__dirname, "../.env") });
+dotenv.config(); // loads from server/.env by default
 
 import { connectDB } from "./config/db.js";
 import app from "./app.js";
@@ -23,7 +18,5 @@ try {
 } catch (error) {
 	console.error("❌ Failed to start server:");
 	console.error("Reason:", error.message);
-	console.error("Full error:", error);
-	process.exit(1); // Exit the process to avoid hanging in a bad state
+	process.exit(1);
 }
-

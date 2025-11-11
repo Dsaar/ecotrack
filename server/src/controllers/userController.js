@@ -24,32 +24,27 @@ export const updateMe = async (req, res) => {
 
 export const patchMe = async (req, res) => {
 	try {
-		const updates = req.body;
-		if (!updates || Object.keys(updates).length === 0) {
-			return res.status(400).json({ message: "No fields provided to update" });
+		const allowed = ["name", "avatarUrl"]; // extend as needed
+		const updates = Object.fromEntries(
+			Object.entries(req.body).filter(([k]) => allowed.includes(k))
+		);
+		if (!Object.keys(updates).length) {
+			return res.status(400).json({ message: "No updatable fields provided" });
 		}
-
 		const user = await User.findByIdAndUpdate(
 			req.user.id,
 			{ $set: updates },
 			{ new: true, runValidators: true }
 		);
-
 		if (!user) return res.status(404).json({ message: "User not found" });
-
-		return res.json({
-			id: user._id,
-			name: user.name,
-			email: user.email,
-			isAdmin: user.isAdmin,
-			points: user.points,
-			favorites: user.favorites,
-		});
+		const { _id, name, email, isAdmin, points, favorites, avatarUrl } = user;
+		return res.json({ id: _id, name, email, isAdmin, points, favorites, avatarUrl });
 	} catch (err) {
-		console.error("[patchMe] error:", err);
+		console.error("[patchMe]", err);
 		return res.status(500).json({ message: "Failed to update user" });
 	}
 };
+
 
 
 // ---- Admin only ----
@@ -62,4 +57,38 @@ export const deleteUser = async (req, res) => {
 	const { id } = req.params;
 	await User.findByIdAndDelete(id);
 	res.status(204).end();
+};
+
+export const adminUpdateUser = async (req, res) => {
+	try {
+		const allowed = ["name", "avatarUrl", "isAdmin"]; // admin may toggle role
+		const updates = Object.fromEntries(
+			Object.entries(req.body).filter(([k]) => allowed.includes(k))
+		);
+		if (!Object.keys(updates).length) {
+			return res.status(400).json({ message: "No updatable fields provided" });
+		}
+
+		const user = await User.findByIdAndUpdate(
+			req.params.id,
+			{ $set: updates },
+			{ new: true, runValidators: true }
+		);
+
+		if (!user) return res.status(404).json({ message: "User not found" });
+
+		const { _id, name, email, isAdmin, points, favorites, avatarUrl } = user;
+		return res.json({
+			id: _id,
+			name,
+			email,
+			isAdmin,
+			points,
+			favorites,
+			avatarUrl,
+		});
+	} catch (err) {
+		console.error("[adminUpdateUser]", err);
+		return res.status(500).json({ message: "Failed to update user" });
+	}
 };
