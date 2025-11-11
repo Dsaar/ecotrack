@@ -1,0 +1,38 @@
+# Dependencies
+node_modules/
+
+# Build outputs (Vite/CRA/TS)
+dist/
+build/
+server/dist/
+server/build/
+client/dist/
+client/build/
+
+# Env files (keep .env.example in repo)
+.env
+.env.local
+.env.*.local
+
+# Logs & caches
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+.eslintcache
+.cache/
+
+# Coverage/tests
+coverage/
+.nyc_output/
+
+# OS & editor
+.DS_Store
+.idea/
+.vscode/
+*.swp
+
+# Uploads or runtime files (if you store local uploads)
+server/uploads/
