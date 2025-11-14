@@ -1,28 +1,47 @@
 import mongoose from "mongoose";
 import User from "../models/Users.js";
+import { isObjectId } from "../utils/isObjectId.js";
 
-export const addFavorite = async (req, res) => {
-	const { itemId } = req.params;
-	// optionally validate itemId shape if it's an ObjectId
-	const user = await User.findByIdAndUpdate(
-		req.user.id,
-		{ $addToSet: { favorites: itemId } },
-		{ new: true }
-	);
-	if (!user) return res.status(404).json({ message: "User not found" });
-	return res.json({ favorites: user.favorites });
+
+export const addMissionFavorite = async (req, res) => {
+	const { id } = req.params;
+	if (!isObjectId(id)) return res.status(400).json({ message: "Invalid mission id" });
+	try {
+		const user = await User.findByIdAndUpdate(
+			req.user.id,
+			{ $addToSet: { "favorites.missions": new mongoose.Types.ObjectId(id) } },
+			{ new: true }
+		);
+		return res.json({ missions: user.favorites?.missions || [] });
+	} catch (e) {
+		return res.status(500).json({ message: "Failed to add favorite" });
+	}
 };
 
-export const removeFavorite = async (req, res) => {
-	const { itemId } = req.params;
-	const user = await User.findByIdAndUpdate(
-		req.user.id,
-		{ $pull: { favorites: itemId } },
-		{ new: true }
-	);
-	if (!user) return res.status(404).json({ message: "User not found" });
-	return res.json({ favorites: user.favorites });
+export const removeMissionFavorite = async (req, res) => {
+	const { id } = req.params;
+	if (!isObjectId(id)) return res.status(400).json({ message: "Invalid mission id" });
+	try {
+		const user = await User.findByIdAndUpdate(
+			req.user.id,
+			{ $pull: { "favorites.missions": new mongoose.Types.ObjectId(id) } },
+			{ new: true }
+		);
+		return res.json({ missions: user.favorites?.missions || [] });
+	} catch (e) {
+		return res.status(500).json({ message: "Failed to remove favorite" });
+	}
 };
+
+export const listMissionFavorites = async (req, res) => {
+	try {
+		const user = await User.findById(req.user.id).populate("favorites.missions");
+		return res.json({ missions: user?.favorites?.missions || [] });
+	} catch (e) {
+		return res.status(500).json({ message: "Failed to list favorites" });
+	}
+};
+
 
 export const awardPoints = async (req, res) => {
 	try {

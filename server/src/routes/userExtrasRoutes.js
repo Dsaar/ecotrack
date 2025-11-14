@@ -1,9 +1,20 @@
 import { Router } from "express";
 import { verifyJWT, requireAdmin } from "../middleware/auth.js";
-import { addFavorite, removeFavorite, awardPoints } from "../controllers/userExtrasController.js";
+import {
+	addMissionFavorite,
+	removeMissionFavorite,
+	listMissionFavorites,
+	awardPoints,
+} from "../controllers/userExtrasController.js";
 
 const router = Router();
-router.post("/favorites/:itemId", verifyJWT, addFavorite);
-router.delete("/favorites/:itemId", verifyJWT, removeFavorite);
-router.post("/:id/points", verifyJWT, requireAdmin, awardPoints);
+
+// Mission Favorites (user-scoped)
+router.post("/favorites/missions/:id", verifyJWT, addMissionFavorite);
+router.delete("/favorites/missions/:id", verifyJWT, removeMissionFavorite);
+router.get("/favorites/missions", verifyJWT, listMissionFavorites);
+
+// Points (admin tool)
+router.post("/points/:userId/:amount", verifyJWT, requireAdmin, awardPoints);
+
 export default router;
