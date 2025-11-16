@@ -1,5 +1,5 @@
 import Submission from "../models/Submission.js";
-import Mission from "../models/Mission.js";
+import Mission from "../models/Missions.js";
 import { isObjectId } from "../utils/isObjectId.js";
 
 export const createSubmission = async (req, res) => {

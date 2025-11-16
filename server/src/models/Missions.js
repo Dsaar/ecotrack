@@ -39,4 +39,4 @@ const missionSchema = new mongoose.Schema(
 	{ timestamps: true }
 );
 
-export default mongoose.model("Mission", missionSchema);
+export default mongoose.model("Missions", missionSchema);

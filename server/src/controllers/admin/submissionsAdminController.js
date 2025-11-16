@@ -1,5 +1,5 @@
 import Submission from "../../models/Submission.js";
-import Mission from "../../models/Mission.js";
+import Mission from "../../models/Missions.js";
 import User from "../../models/Users.js";
 import Checkin from "../../models/Checkin.js";
 

@@ -47,7 +47,7 @@ const userSchema = new Schema(
 			missions: [
 				{
 					type: Schema.Types.ObjectId,
-					ref: "Mission", // ✅ matches your new structure
+					ref: "Missions", // ✅ matches your new structure
 					default: [],
 				},
 			],

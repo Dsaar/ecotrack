@@ -8,6 +8,10 @@ import cookieParser from "cookie-parser";
 import authRoutes from "./routes/authRoutes.js";
 import userRoutes from "./routes/userRoutes.js";
 import userExtrasRoutes from "./routes/userExtrasRoutes.js"; // favorites + points
+import submissionRoutes from "./routes/submissionRoutes.js";
+import adminSubmissionsRoutes from "./routes/admin/submissionAdminRoutes.js";
+import missionRoutes from "./routes/missionRoutes.js";
+
 
 const app = express();
 
@@ -33,6 +37,21 @@ app.get("/health", (_req, res) => res.json({ ok: true }));
 app.use("/api/auth", authRoutes);          // register, login, me (auth)
 app.use("/api/users", userRoutes);         // user self & admin routes
 app.use("/api/users", userExtrasRoutes);   // favorites + points management
+app.use("/api/submissions", submissionRoutes);
+app.use("/api/admin/submissions", adminSubmissionsRoutes)
+app.use("/api/missions", missionRoutes);   
+
+
+
+// Health / root ping (place before the 404 handler)
+app.get("/", (req, res) => {
+	res.status(200).json({
+		status: "ok",
+		uptime: process.uptime(),
+		env: process.env.NODE_ENV || "development",
+		time: new Date().toISOString(),
+	});
+});
 
 // === 404 HANDLER ===
 app.use((req, res) => {
