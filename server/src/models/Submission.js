@@ -11,7 +11,7 @@ const answerSchema = new mongoose.Schema(
 const submissionSchema = new mongoose.Schema(
 	{
 		userId: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true, index: true },
-		missionId: { type: mongoose.Schema.Types.ObjectId, ref: "Mission", required: true, index: true },
+		missionId: { type: mongoose.Schema.Types.ObjectId, ref: "Missions", required: true, index: true },
 		answers: [answerSchema],
 		evidenceUrls: [{ type: String }],
 		status: { type: String, enum: ["pending", "approved", "rejected"], default: "pending", index: true },
