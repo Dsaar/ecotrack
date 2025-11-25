@@ -13,7 +13,7 @@ const cookieOpts = {
 	httpOnly: true,
 	sameSite: "lax",
 	secure: isProd,
-	maxAge: COOKIE_MAX_AGE_MS, // matches JWT_EXPIRES_IN
+	maxAge: COOKIE_MAX_AGE_MS,
 	path: "/",
 };
 
@@ -40,7 +40,7 @@ const signToken = (user) =>
 			role: user.role || (user.isAdmin ? "admin" : "user"),
 		},
 		JWT_SECRET,
-		{ expiresIn: JWT_EXPIRES_IN } // e.g., "4h"
+		{ expiresIn: JWT_EXPIRES_IN }
 	);
 
 const sendAuth = (res, user, status = 200) => {
@@ -52,41 +52,56 @@ const sendAuth = (res, user, status = 200) => {
 	});
 };
 
-export const register = async (req, res) => {
+/* ============================================================
+   REGISTER
+   (Validation is already handled by Joi middleware)
+   ============================================================ */
+export const register = async (req, res, next) => {
 	try {
-		let { name, email, password, avatarUrl } = req.body;
+		const data = req.body; // already validated by validate(registerSchema)
 
-		if (typeof name === "string") name = name.trim();
-		if (typeof email === "string") email = email.trim().toLowerCase();
-		if (!name || !email || !password) {
-			return res
-				.status(400)
-				.json({ message: "Name, email and password are required" });
+		const existing = await User.findOne({ email: data.email.toLowerCase() });
+		if (existing) {
+			return res.status(409).json({ message: "Email is already registered" });
 		}
 
-		const exists = await User.findOne({ email });
-		if (exists) return res.status(409).json({ message: "Email already in use" });
+		const passwordHash = await bcrypt.hash(data.password, 12);
 
-		const passwordHash = await bcrypt.hash(password, 12);
 		const user = await User.create({
-			name,
-			email,
+			name: data.name,
+			email: data.email.toLowerCase(),
 			passwordHash,
-			avatarUrl: avatarUrl || undefined,
+			phone: data.phone || "",
+			address: data.address || {},
+			avatarUrl: data.avatarUrl || {},
+			isAdmin: false,
+			role: "user",
+			points: 0,
+			favorites: {
+				missions: [],
+				submissions: [],
+			},
 		});
 
+		// Automatically log in after register
 		return sendAuth(res, user, 201);
 	} catch (err) {
 		console.error("[authController.register] error:", err?.message);
-		return res.status(500).json({ message: "Registration failed" });
+		next(err);
 	}
 };
 
+/* ============================================================
+   LOGIN
+   ============================================================ */
 export const login = async (req, res) => {
 	try {
 		let { email, password } = req.body;
 
-		if (typeof email === "string") email = email.trim().toLowerCase();
+		if (typeof email === "string") {
+			email = email.trim().toLowerCase();
+		}
+
 		if (!email || !password) {
 			return res
 				.status(400)
@@ -94,10 +109,12 @@ export const login = async (req, res) => {
 		}
 
 		const user = await User.findOne({ email }).select("+passwordHash");
-		if (!user) return res.status(401).json({ message: "Invalid credentials" });
+		if (!user)
+			return res.status(401).json({ message: "Invalid credentials" });
 
 		const ok = await bcrypt.compare(password, user.passwordHash);
-		if (!ok) return res.status(401).json({ message: "Invalid credentials" });
+		if (!ok)
+			return res.status(401).json({ message: "Invalid credentials" });
 
 		user.lastLogin = new Date();
 		await user.save({ validateBeforeSave: false });
@@ -109,10 +126,15 @@ export const login = async (req, res) => {
 	}
 };
 
+/* ============================================================
+   ME (AUTHENTICATED USER INFO)
+   ============================================================ */
 export const me = async (req, res) => {
 	try {
 		const userId = req.user?.id || req.user?.sub;
-		if (!userId) return res.status(401).json({ message: "Not authenticated" });
+		if (!userId) {
+			return res.status(401).json({ message: "Not authenticated" });
+		}
 
 		const user = await User.findById(userId);
 		if (!user) return res.status(404).json({ message: "User not found" });
@@ -124,6 +146,9 @@ export const me = async (req, res) => {
 	}
 };
 
+/* ============================================================
+   LOGOUT
+   ============================================================ */
 export const logout = async (_req, res) => {
 	try {
 		res.clearCookie(AUTH_COOKIE_NAME, { ...cookieOpts, maxAge: undefined });

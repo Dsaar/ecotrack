@@ -22,7 +22,7 @@ router.get("/:id", getMissionById);
 
 // Admin CRUD
 router.post("/", verifyJWT, requireAdmin, validate(createMissionSchema), createMission);
-router.put("/:id", verifyJWT, requireAdmin, validate(createMissionSchema), updateMission);
+router.put("/:id", verifyJWT, requireAdmin, validate(updateMissionSchema), updateMission);
 router.patch("/:id", verifyJWT, requireAdmin, validate(updateMissionSchema), patchMission);
 router.delete("/:id", verifyJWT, requireAdmin, deleteMission);
 

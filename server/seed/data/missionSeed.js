@@ -1,0 +1,78 @@
+// seed/data/missionSeed.js
+
+export const missionsSeed = () => {
+	return [
+		{
+			title: "Beach Cleanup",
+			slug: "beach-cleanup",
+			summary: "Pick up litter at your local beach or park.",
+			description:
+				"Bring a bag and gloves, collect trash for 20–30 minutes, then dispose or recycle properly.",
+			category: "Community",
+			difficulty: "Easy",
+			estImpact: { co2Kg: 0, waterL: 0, wasteKg: 2 },
+			duration: "30 min",
+			imageUrl: "https://picsum.photos/600/400?m1",
+			requiresSubmission: true,
+			submissionSchema: [
+				{ key: "photo", label: "Upload a cleanup photo", type: "url", required: true },
+				{ key: "bags", label: "How many bags did you fill?", type: "number", required: true },
+			],
+			points: 50,
+			tags: ["cleanup", "outdoors"],
+			isPublished: true,
+		},
+		{
+			title: "Bike to Work",
+			slug: "bike-to-work",
+			summary: "Skip the car for one day and bike or walk instead.",
+			description: "Choose biking, walking, or public transport for your commute today.",
+			category: "Transport",
+			difficulty: "Easy",
+			estImpact: { co2Kg: 3, waterL: 0, wasteKg: 0 },
+			duration: "1 day",
+			imageUrl: "https://picsum.photos/600/400?m2",
+			requiresSubmission: false,
+			submissionSchema: [],
+			points: 20,
+			tags: ["transport", "co2"],
+			isPublished: true,
+		},
+		{
+			title: "Meatless Day",
+			slug: "meatless-day",
+			summary: "Eat vegetarian meals for one full day.",
+			description: "Avoid meat today. Track what you ate and reflect on the impact.",
+			category: "Food",
+			difficulty: "Medium",
+			estImpact: { co2Kg: 4, waterL: 1500, wasteKg: 0 },
+			duration: "1 day",
+			imageUrl: "https://picsum.photos/600/400?m3",
+			requiresSubmission: true,
+			submissionSchema: [
+				{ key: "meals", label: "What meals did you eat?", type: "text", required: true },
+			],
+			points: 35,
+			tags: ["food", "diet"],
+			isPublished: true,
+		},
+		{
+			title: "Shorter Shower Challenge",
+			slug: "shorter-shower",
+			summary: "Reduce shower time to 5 minutes.",
+			description: "Set a timer. Try a 5-minute shower and log how it went.",
+			category: "Water",
+			difficulty: "Easy",
+			estImpact: { co2Kg: 0.5, waterL: 50, wasteKg: 0 },
+			duration: "5 min",
+			imageUrl: "https://picsum.photos/600/400?m4",
+			requiresSubmission: true,
+			submissionSchema: [
+				{ key: "time", label: "How long was your shower (minutes)?", type: "number", required: true },
+			],
+			points: 15,
+			tags: ["water", "home"],
+			isPublished: true,
+		},
+	];
+};

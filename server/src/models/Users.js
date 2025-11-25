@@ -1,15 +1,16 @@
 import mongoose from "mongoose";
+import { Name } from "../helpers/submodels/Name.js";
+import { Address } from "../helpers/submodels/Address.js";
+import { Image } from "../helpers/submodels/Image.js";
 
 const { Schema, model } = mongoose;
 
 const userSchema = new Schema(
 	{
+		// submodel: { first, middle, last }
 		name: {
-			type: String,
+			type: Name,
 			required: true,
-			trim: true,
-			minlength: 2,
-			maxlength: 100,
 		},
 
 		email: {
@@ -18,23 +19,43 @@ const userSchema = new Schema(
 			unique: true,
 			lowercase: true,
 			trim: true,
-			match: [/^\S+@\S+\.\S+$/, "Invalid email format"], // RFC2822-ish
+			match: [/^\S+@\S+\.\S+$/, "Invalid email format"],
 		},
 
 		passwordHash: {
 			type: String,
 			required: true,
-			select: false, // don’t return by default
+			select: false,
 		},
 
+		phone: {
+			type: String,
+			trim: true,
+		},
+
+		// submodel: { country, city, street, houseNumber, zip, state }
+		address: {
+			type: Address,
+		},
+
+		// keep name "avatarUrl" for controller compatibility
+		// submodel: { url, alt }
+		avatarUrl: {
+			type: Image,
+			default: undefined,
+		},
+
+		// keep isAdmin for current auth + admin logic
 		isAdmin: {
 			type: Boolean,
 			default: false,
 		},
 
-		avatarUrl: {
+		// optional role (nice to have, not used yet)
+		role: {
 			type: String,
-			default: "",
+			enum: ["user", "admin"],
+			default: "user",
 		},
 
 		points: {
@@ -47,7 +68,14 @@ const userSchema = new Schema(
 			missions: [
 				{
 					type: Schema.Types.ObjectId,
-					ref: "Missions", // ✅ matches your new structure
+					ref: "Missions", // must match mission model name
+					default: [],
+				},
+			],
+			submissions: [
+				{
+					type: Schema.Types.ObjectId,
+					ref: "Submission",
 					default: [],
 				},
 			],

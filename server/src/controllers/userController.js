@@ -1,4 +1,5 @@
 import User from "../models/Users.js";
+import { isObjectId } from "../utils/isObjectId.js";
 
 export const getMe = async (req, res) => {
 	const user = await User.findById(req.user.id);
@@ -9,18 +10,34 @@ export const getMe = async (req, res) => {
 	});
 };
 
-export const updateMe = async (req, res) => {
-	const { name } = req.body; // keep minimal; add more fields if you like
-	const user = await User.findByIdAndUpdate(
-		req.user.id,
-		{ $set: { name } },
-		{ new: true, runValidators: true }
-	);
-	res.json({
-		id: user._id, name: user.name, email: user.email,
-		isAdmin: user.isAdmin, points: user.points, favorites: user.favorites
-	});
+export const updateMe = async (req, res, next) => {
+	try {
+		const allowedFields = ["name", "avatarUrl", "phone", "address"];
+
+		const updateData = {};
+		for (const field of allowedFields) {
+			if (req.body[field] !== undefined) {
+				updateData[field] = req.body[field];
+			}
+		}
+
+		const updated = await User.findByIdAndUpdate(
+			req.user.id,
+			updateData,
+			{ new: true }
+		);
+
+		if (!updated) {
+			return res.status(404).json({ message: "User not found" });
+		}
+
+		res.json(updated);
+	} catch (err) {
+		next(err);
+	}
 };
+
+
 
 export const patchMe = async (req, res) => {
 	try {
@@ -45,6 +62,21 @@ export const patchMe = async (req, res) => {
 	}
 };
 
+export const getUserById = async (req, res) => {
+	const { id } = req.params;
+
+	if (!isObjectId(id)) {
+		return res.status(400).json({ message: "Invalid user id" });
+	}
+
+	const user = await User.findById(id).select("-passwordHash");
+
+	if (!user) {
+		return res.status(404).json({ message: "User not found" });
+	}
+
+	return res.json(user);
+};
 
 
 // ---- Admin only ----
