@@ -8,11 +8,13 @@ import {
 	Stack,
 	Card,
 	CardContent,
-	Divider,
 } from "@mui/material";
+import { useNavigate } from "react-router-dom";
 
 
 function HomePage() {
+	const navigate = useNavigate();
+
 	return (
 		<Box sx={{ minHeight: "100vh", bgcolor: "#f9fafb" }}>
 			{/* Global header with logo */}
@@ -64,7 +66,10 @@ function HomePage() {
 									textTransform: "none",
 									bgcolor: "#166534",
 									"&:hover": { bgcolor: "#14532d" },
+									
 								}}
+								onClick={() => navigate("/register")}
+
 							>
 								Get Started
 							</Button>
@@ -72,6 +77,7 @@ function HomePage() {
 								variant="text"
 								size="large"
 								sx={{ textTransform: "none", color: "#166534" }}
+								
 							>
 								Browse missions →
 							</Button>
@@ -157,14 +163,6 @@ function HomePage() {
 					</Card>
 				</Box>
 			</Container>
-
-			{/* Footer */}
-			<Divider />
-			<Box sx={{ py: 3, textAlign: "center", bgcolor: "white" }}>
-				<Typography variant="body2" color="text.secondary">
-					© {new Date().getFullYear()} EcoTrack. All rights reserved.
-				</Typography>
-			</Box>
 		</Box>
 	);
 }

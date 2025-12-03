@@ -6,6 +6,8 @@ import MissionDetailsPage from "../../features/missions/pages/MissionDetailsPage
 import ErrorPage from "../../errors/ErrorPage.jsx";
 import DashboardLayout from "../../features/dashboard/layout/DashboardLayout.jsx";
 import DashboardHome from "../../features/dashboard/pages/DashboardHome.jsx";
+import LoginPage from "../../features/auth/pages/LoginPage.jsx";
+import RegisterPage from "../../features/auth/pages/RegisterPage.jsx";
 
 
 function Router() {
@@ -36,6 +38,23 @@ function Router() {
 					</Layout>
 				}
 			/>
+			<Route
+				path="/login"
+				element={
+					<Layout>
+						<LoginPage />
+					</Layout>
+				}
+			/>
+			<Route
+				path="/register"
+				element={
+					<Layout>
+						<RegisterPage />
+					</Layout>
+				}
+			/>
+
 
 			{/* Dashboard route with its own layout */}
 			<Route

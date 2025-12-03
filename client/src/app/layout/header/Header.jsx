@@ -8,8 +8,11 @@ import {
 	Toolbar,
 } from "@mui/material";
 import Logo from "../../../components/common/Logo.jsx";
+import { useNavigate } from "react-router-dom";
 
 function Header() {
+	const navigate = useNavigate();
+
 	return (
 		<AppBar
 			position="static"
@@ -23,8 +26,8 @@ function Header() {
 			<Container maxWidth="lg">
 				<Toolbar disableGutters sx={{ py: 1.5 }}>
 					{/* Logo */}
-					<Box sx={{ display: "flex", alignItems: "center", mr: 4 }}>
-						<Logo height={40} />
+					<Box sx={{ display: "flex", alignItems: "center", mr: 4, cursor: "pointer" }} onClick={() => navigate("/")}>						
+					<Logo height={40} />
 					</Box>
 
 					{/* Center nav links – hidden on small screens for now */}
@@ -40,7 +43,7 @@ function Header() {
 						<Button sx={{ textTransform: "none" }} color="inherit">
 							Features
 						</Button>
-						<Button sx={{ textTransform: "none" }} color="inherit">
+						<Button sx={{ textTransform: "none" }} color="inherit" onClick={() => navigate("/missions")}>
 							Missions
 						</Button>
 						<Button sx={{ textTransform: "none" }} color="inherit">
@@ -54,6 +57,7 @@ function Header() {
 							variant="outlined"
 							color="inherit"
 							sx={{ textTransform: "none" }}
+							onClick={() => navigate("/login")}
 						>
 							Log in
 						</Button>
@@ -64,6 +68,8 @@ function Header() {
 								bgcolor: "#166534",
 								"&:hover": { bgcolor: "#14532d" },
 							}}
+							onClick={() => navigate("/register")}
+
 						>
 							Sign up
 						</Button>
