@@ -1,14 +1,7 @@
-// src/App.jsx
-import { Routes, Route } from "react-router-dom";
-import HomePage from "./pages/HomePage.jsx";
+import Router from "./app/router/Router.jsx";
 
 function App() {
-  return (
-    <Routes>
-      <Route path="/" element={<HomePage />} />
-      {/* later: add /dashboard, /missions, /login, etc. */}
-    </Routes>
-  );
+  return <Router />;
 }
 
 export default App;

@@ -1,20 +1,24 @@
-// src/components/layout/AppHeader.jsx
+// src/app/layout/header/Header.jsx
 import {
 	AppBar,
 	Box,
 	Button,
 	Container,
-	Toolbar,
 	Stack,
+	Toolbar,
 } from "@mui/material";
-import Logo from "../common/Logo.jsx";
+import Logo from "../../../components/common/Logo.jsx";
 
-function AppHeader() {
+function Header() {
 	return (
 		<AppBar
 			position="static"
 			elevation={0}
-			sx={{ bgcolor: "transparent", color: "inherit", borderBottom: "1px solid #e5e7eb" }}
+			sx={{
+				bgcolor: "transparent",
+				color: "inherit",
+				borderBottom: "1px solid #e5e7eb",
+			}}
 		>
 			<Container maxWidth="lg">
 				<Toolbar disableGutters sx={{ py: 1.5 }}>
@@ -23,11 +27,15 @@ function AppHeader() {
 						<Logo height={40} />
 					</Box>
 
-					{/* Center links */}
+					{/* Center nav links – hidden on small screens for now */}
 					<Stack
 						direction="row"
 						spacing={3}
-						sx={{ flexGrow: 1, justifyContent: "center", display: { xs: "none", md: "flex" } }}
+						sx={{
+							flexGrow: 1,
+							justifyContent: "center",
+							display: { xs: "none", md: "flex" },
+						}}
 					>
 						<Button sx={{ textTransform: "none" }} color="inherit">
 							Features
@@ -40,14 +48,22 @@ function AppHeader() {
 						</Button>
 					</Stack>
 
-					{/* Right auth buttons */}
+					{/* Right side: auth buttons */}
 					<Stack direction="row" spacing={2}>
-						<Button variant="outlined" color="inherit" sx={{ textTransform: "none" }}>
+						<Button
+							variant="outlined"
+							color="inherit"
+							sx={{ textTransform: "none" }}
+						>
 							Log in
 						</Button>
 						<Button
 							variant="contained"
-							sx={{ textTransform: "none", bgcolor: "#166534", "&:hover": { bgcolor: "#14532d" } }}
+							sx={{
+								textTransform: "none",
+								bgcolor: "#166534",
+								"&:hover": { bgcolor: "#14532d" },
+							}}
 						>
 							Sign up
 						</Button>
@@ -58,4 +74,4 @@ function AppHeader() {
 	);
 }
 
-export default AppHeader;
+export default Header;

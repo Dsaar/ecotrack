@@ -11,13 +11,11 @@ import {
 	Divider,
 } from "@mui/material";
 
-import AppHeader from "../components/layout/AppHeader.jsx";
 
 function HomePage() {
 	return (
 		<Box sx={{ minHeight: "100vh", bgcolor: "#f9fafb" }}>
 			{/* Global header with logo */}
-			<AppHeader />
 
 			{/* Hero + preview */}
 			<Container maxWidth="lg" sx={{ py: { xs: 6, md: 10 } }}>
