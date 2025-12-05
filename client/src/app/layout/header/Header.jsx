@@ -77,7 +77,7 @@ function Header() {
 						>
 							Missions
 						</Button>
-						<Button sx={{ textTransform: "none" }} color="inherit">
+						<Button sx={{ textTransform: "none" }} color="inherit" onClick={() => navigate("/missions")}>
 							Impact
 						</Button>
 					</Stack>

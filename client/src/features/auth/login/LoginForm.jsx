@@ -1,4 +1,5 @@
 // src/features/auth/login/LoginForm.jsx
+
 import { useState } from "react";
 import { Box, Button, TextField, Stack, Typography } from "@mui/material";
 import { useNavigate } from "react-router-dom";
@@ -11,6 +12,7 @@ function LoginForm({ onSubmitSuccess }) {
 		password: "",
 	});
 
+	const [error, setError] = useState(null);
 	const { login } = useUser();
 	const navigate = useNavigate();
 
@@ -19,18 +21,21 @@ function LoginForm({ onSubmitSuccess }) {
 		setForm((prev) => ({ ...prev, [name]: value }));
 	};
 
-	const handleSubmit = (e) => {
+	const handleSubmit = async (e) => {
 		e.preventDefault();
+		setError(null);
 
-		// TODO: replace with real API call
-		const fakeUser = {
-			name: "EcoTrack User",
-			email: form.email,
-		};
+		try {
+			// REAL BACKEND LOGIN
+			await login(form.email, form.password);
 
-		login(fakeUser);
-		if (onSubmitSuccess) onSubmitSuccess();
-		navigate("/dashboard");
+			if (onSubmitSuccess) onSubmitSuccess();
+
+			navigate("/dashboard");
+		} catch (err) {
+			console.error("Login failed:", err);
+			setError("Invalid email or password");
+		}
 	};
 
 	return (
@@ -45,6 +50,12 @@ function LoginForm({ onSubmitSuccess }) {
 			<Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
 				Continue your missions and see your impact.
 			</Typography>
+
+			{error && (
+				<Typography color="error" sx={{ fontSize: 14 }}>
+					{error}
+				</Typography>
+			)}
 
 			<TextField
 				fullWidth

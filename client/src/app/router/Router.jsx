@@ -10,6 +10,12 @@ import LoginPage from "../../features/auth/pages/LoginPage.jsx";
 import RegisterPage from "../../features/auth/pages/RegisterPage.jsx";
 import { useUser } from "../providers/UserProvider.jsx";
 import DashboardSettings from "../../features/dashboard/pages/DashboardSettings.jsx";
+import DashboardMissions from "../../features/dashboard/pages/DashboardMissions.jsx";
+import PublicMissionsPage from "../../features/landing/pages/PublicMissionsPage.jsx";
+import DashboardMissionDetails from "../../features/dashboard/pages/DashboardMissionsDetails.jsx";
+
+
+
 
 
 
@@ -32,7 +38,7 @@ function Router() {
 				path="/missions"
 				element={
 					<Layout>
-						<MissionsPage />
+						<PublicMissionsPage />
 					</Layout>
 				}
 			/>
@@ -87,6 +93,32 @@ function Router() {
 						)
 					}
 				/>
+			<Route
+				path="/dashboard/missions"
+				element={
+					user ? (
+						<DashboardLayout>
+							<DashboardMissions />
+						</DashboardLayout>
+					) : (
+						<Navigate to="/login" replace />
+					)
+				}
+			/>
+			<Route
+				path="/dashboard/missions/:id"
+				element={
+					user ? (
+						<DashboardLayout>
+							<DashboardMissionDetails />
+						</DashboardLayout>
+					) : (
+						<Navigate to="/login" replace />
+					)
+				}
+			/>
+
+
 
 
 			{/* Catch-all: 404 inside the main Layout */}
