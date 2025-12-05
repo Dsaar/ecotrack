@@ -1,4 +1,3 @@
-// src/app/layout/footer/Footer.jsx
 import { Box, Typography } from "@mui/material";
 
 function Footer() {
@@ -6,8 +5,9 @@ function Footer() {
 		<Box
 			component="footer"
 			sx={{
-				borderTop: "1px solid #e5e7eb",
-				bgcolor: "white",
+				borderTop: "1px solid",
+				borderColor: "divider",
+				bgcolor: "background.paper",
 				py: 2,
 				mt: "auto",
 				textAlign: "center",

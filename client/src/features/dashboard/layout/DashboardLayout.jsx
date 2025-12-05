@@ -8,13 +8,11 @@ function DashboardLayout({ children }) {
 			sx={{
 				minHeight: "100vh",
 				display: "flex",
-				bgcolor: "#f3f4f6",
+				bgcolor: "background.default",
 			}}
 		>
-			{/* Sidebar */}
 			<Sidebar />
 
-			{/* Main area */}
 			<Box
 				sx={{
 					flexGrow: 1,

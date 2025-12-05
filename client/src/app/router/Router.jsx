@@ -1,4 +1,4 @@
-import { Routes, Route } from "react-router-dom";
+import { Routes, Route, Navigate } from "react-router-dom";
 import Layout from "../layout/Layout.jsx";
 import HomePage from "../../features/landing/pages/HomePage.jsx";
 import MissionsPage from "../../features/missions/pages/MissionsPage.jsx";
@@ -8,9 +8,15 @@ import DashboardLayout from "../../features/dashboard/layout/DashboardLayout.jsx
 import DashboardHome from "../../features/dashboard/pages/DashboardHome.jsx";
 import LoginPage from "../../features/auth/pages/LoginPage.jsx";
 import RegisterPage from "../../features/auth/pages/RegisterPage.jsx";
+import { useUser } from "../providers/UserProvider.jsx";
+import DashboardSettings from "../../features/dashboard/pages/DashboardSettings.jsx";
+
+
 
 
 function Router() {
+	const { user } = useUser();
+
 	return (
 		<Routes>
 			{/* Public routes using the main Layout */}
@@ -56,15 +62,32 @@ function Router() {
 			/>
 
 
-			{/* Dashboard route with its own layout */}
+			{/* Dashboard (protected) */}
 			<Route
 				path="/dashboard"
 				element={
-					<DashboardLayout>
-						<DashboardHome />
-					</DashboardLayout>
+					user ? (
+						<DashboardLayout>
+							<DashboardHome />
+						</DashboardLayout>
+					) : (
+						<Navigate to="/login" replace />
+					)
 				}
 			/>
+				<Route
+					path="/dashboard/settings"
+					element={
+						user ? (
+							<DashboardLayout>
+								<DashboardSettings />
+							</DashboardLayout>
+						) : (
+							<Navigate to="/login" replace />
+						)
+					}
+				/>
+
 
 			{/* Catch-all: 404 inside the main Layout */}
 			<Route

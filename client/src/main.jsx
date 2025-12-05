@@ -1,17 +1,19 @@
+// src/main.jsx
 import React from "react";
 import ReactDOM from "react-dom/client";
 import { BrowserRouter } from "react-router-dom";
-import { ThemeProvider, CssBaseline } from "@mui/material";
 import App from "./App.jsx";
-import theme from "./theme.js"; // your theme file (or create a simple one)
+import UserProvider from "./app/providers/UserProvider.jsx";
+import CustomThemeProvider from "./app/providers/CustomThemeProvider.jsx";
 
 ReactDOM.createRoot(document.getElementById("root")).render(
   <React.StrictMode>
     <BrowserRouter>
-      <ThemeProvider theme={theme}>
-        <CssBaseline />
-        <App />
-      </ThemeProvider>
+      <CustomThemeProvider>
+        <UserProvider>
+          <App />
+        </UserProvider>
+      </CustomThemeProvider>
     </BrowserRouter>
   </React.StrictMode>
 );

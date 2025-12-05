@@ -1,13 +1,18 @@
 // src/features/auth/login/LoginForm.jsx
 import { useState } from "react";
 import { Box, Button, TextField, Stack, Typography } from "@mui/material";
+import { useNavigate } from "react-router-dom";
 import PasswordField from "../../../shared/components/PasswordField.jsx";
+import { useUser } from "../../../app/providers/UserProvider.jsx";
 
 function LoginForm({ onSubmitSuccess }) {
 	const [form, setForm] = useState({
 		email: "",
 		password: "",
 	});
+
+	const { login } = useUser();
+	const navigate = useNavigate();
 
 	const handleChange = (e) => {
 		const { name, value } = e.target;
@@ -17,10 +22,15 @@ function LoginForm({ onSubmitSuccess }) {
 	const handleSubmit = (e) => {
 		e.preventDefault();
 
-		// TODO: replace with real authService login
-		console.log("Login form submitted:", form);
+		// TODO: replace with real API call
+		const fakeUser = {
+			name: "EcoTrack User",
+			email: form.email,
+		};
 
+		login(fakeUser);
 		if (onSubmitSuccess) onSubmitSuccess();
+		navigate("/dashboard");
 	};
 
 	return (
@@ -54,14 +64,13 @@ function LoginForm({ onSubmitSuccess }) {
 
 			<Stack
 				direction={{ xs: "column", sm: "row" }}
-				justifyContent="space-between"
+				justifyContent="flex-start"
 				alignItems={{ xs: "stretch", sm: "center" }}
 				sx={{ mt: 1, gap: 1.5 }}
 			>
 				<Button
 					type="submit"
 					variant="contained"
-					fullWidth={false}
 					sx={{
 						textTransform: "none",
 						bgcolor: "#166534",

@@ -1,4 +1,3 @@
-// src/app/layout/Layout.jsx
 import { Box } from "@mui/material";
 import Header from "./header/Header.jsx";
 import Main from "./main/Main.jsx";
@@ -9,7 +8,7 @@ function Layout({ children }) {
 		<Box
 			sx={{
 				minHeight: "100vh",
-				bgcolor: "#f9fafb",
+				bgcolor: "background.default",
 				display: "flex",
 				flexDirection: "column",
 			}}

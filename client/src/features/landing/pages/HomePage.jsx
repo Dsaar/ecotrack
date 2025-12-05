@@ -1,43 +1,43 @@
-// src/pages/HomePage.jsx
-
+// src/features/landing/pages/HomePage.jsx
 import {
 	Box,
 	Button,
-	Container,
-	Typography,
-	Stack,
 	Card,
 	CardContent,
+	Container,
+	LinearProgress,
+	Stack,
+	Typography,
 } from "@mui/material";
 import { useNavigate } from "react-router-dom";
-
 
 function HomePage() {
 	const navigate = useNavigate();
 
 	return (
-		<Box sx={{ minHeight: "100vh", bgcolor: "#f9fafb" }}>
-			{/* Global header with logo */}
-
-			{/* Hero + preview */}
-			<Container maxWidth="lg" sx={{ py: { xs: 6, md: 10 } }}>
-				<Box
-					sx={{
-						display: "grid",
-						gridTemplateColumns: { xs: "1fr", md: "1.1fr 1fr" },
-						gap: 6,
-						alignItems: "center",
-					}}
+		<Box
+			sx={{
+				minHeight: "calc(100vh - 300px)", // header + footer space
+				bgcolor: "background.default",
+				display: "flex",
+				alignItems: "center",
+			}}
+		>
+			<Container maxWidth="lg">
+				<Stack
+					direction={{ xs: "column", md: "row" }}
+					spacing={{ xs: 6, md: 8 }}
+					alignItems="center"
 				>
-					{/* LEFT: Hero text */}
-					<Box>
+					{/* Left: Hero text */}
+					<Box sx={{ flex: 1 }}>
 						<Typography
-							variant="h2"
+							component="h1"
+							variant="h3"
 							sx={{
-								fontSize: { xs: "2.1rem", md: "3rem" },
 								fontWeight: 700,
+								letterSpacing: -0.5,
 								mb: 2,
-								lineHeight: 1.1,
 							}}
 						>
 							See your impact.
@@ -47,121 +47,121 @@ function HomePage() {
 
 						<Typography
 							variant="body1"
-							sx={{
-								fontSize: "1.05rem",
-								color: "text.secondary",
-								maxWidth: 520,
-								mb: 4,
-							}}
+							color="text.secondary"
+							sx={{ maxWidth: 480, mb: 3 }}
 						>
 							Take on eco-friendly missions, track your progress, and make a
 							difference for the planet.
 						</Typography>
 
-						<Stack direction="row" spacing={2} flexWrap="wrap">
+						<Stack direction="row" spacing={2}>
 							<Button
 								variant="contained"
-								size="large"
 								sx={{
 									textTransform: "none",
+									px: 3.5,
+									py: 1.2,
 									bgcolor: "#166534",
 									"&:hover": { bgcolor: "#14532d" },
-									
 								}}
 								onClick={() => navigate("/register")}
-
 							>
 								Get Started
 							</Button>
 							<Button
 								variant="text"
-								size="large"
-								sx={{ textTransform: "none", color: "#166534" }}
-								
+								sx={{ textTransform: "none" }}
+								onClick={() => navigate("/missions")}
 							>
 								Browse missions →
 							</Button>
 						</Stack>
 					</Box>
 
-					{/* RIGHT: Community dashboard preview */}
-					<Card
-						elevation={0}
-						sx={{
-							borderRadius: 3,
-							border: "1px solid #e5e7eb",
-							bgcolor: "white",
-							px: 3,
-							py: 2.5,
-						}}
-					>
-						<CardContent sx={{ p: 0 }}>
-							{/* Stats row */}
-							<Stack direction="row" spacing={2} sx={{ mb: 2 }}>
-								<Box
-									sx={{
-										flex: 1,
-										borderRadius: 2,
-										bgcolor: "#dcfce7",
-										p: 2,
-									}}
+					{/* Right: Community impact card */}
+					<Box sx={{ flex: 1, width: "100%" }}>
+						<Card
+							elevation={0}
+							sx={{
+								borderRadius: 4,
+								border: "1px solid",
+								borderColor: "divider",
+								bgcolor: "background.paper",
+							}}
+						>
+							<CardContent sx={{ p: 4 }}>
+								<Typography
+									variant="body2"
+									color="text.secondary"
+									sx={{ mb: 2 }}
 								>
-									<Typography variant="body2" sx={{ mb: 0.5 }}>
-										CO₂ Reduced
-									</Typography>
-									<Typography variant="h6" sx={{ fontWeight: 700 }}>
-										−210 kg
-									</Typography>
-								</Box>
-
-								<Box
-									sx={{
-										flex: 1,
-										borderRadius: 2,
-										bgcolor: "#dbeafe",
-										p: 2,
-									}}
-								>
-									<Typography variant="body2" sx={{ mb: 0.5 }}>
-										Water Saved
-									</Typography>
-									<Typography variant="h6" sx={{ fontWeight: 700 }}>
-										3150 liters
-									</Typography>
-								</Box>
-							</Stack>
-
-							{/* Progress bar */}
-							<Box sx={{ mt: 1 }}>
-								<Typography variant="subtitle2" sx={{ mb: 1 }}>
-									Community Missions Progress
+									Community impact (demo data)
 								</Typography>
 
-								<Box
-									sx={{
-										height: 8,
-										borderRadius: 999,
-										bgcolor: "#e5e7eb",
-										overflow: "hidden",
-										mb: 1,
-									}}
+								<Stack
+									direction={{ xs: "column", sm: "row" }}
+									spacing={2}
+									sx={{ mb: 3 }}
 								>
 									<Box
 										sx={{
-											width: "70%",
-											height: "100%",
-											bgcolor: "#166534",
+											flex: 1,
+											p: 2,
+											borderRadius: 3,
+											bgcolor: "success.light",
+											color: "success.contrastText",
 										}}
-									/>
-								</Box>
+									>
+										<Typography variant="caption">CO₂ Reduced</Typography>
+										<Typography
+											variant="h5"
+											sx={{ fontWeight: 700, mt: 0.5 }}
+										>
+											–210 kg
+										</Typography>
+									</Box>
 
-								<Typography variant="body2" sx={{ color: "text.secondary" }}>
+									<Box
+										sx={{
+											flex: 1,
+											p: 2,
+											borderRadius: 3,
+											bgcolor: "info.light",
+											color: "info.contrastText",
+										}}
+									>
+										<Typography variant="caption">Water Saved</Typography>
+										<Typography
+											variant="h5"
+											sx={{ fontWeight: 700, mt: 0.5 }}
+										>
+											3150 liters
+										</Typography>
+									</Box>
+								</Stack>
+
+								<Typography
+									variant="body2"
+									sx={{ fontWeight: 500, mb: 1 }}
+								>
+									Community Missions Progress
+								</Typography>
+								<LinearProgress
+									variant="determinate"
+									value={60}
+									sx={{
+										height: 8,
+										borderRadius: 999,
+										mb: 1,
+									}}
+								/>
+								<Typography variant="body2" color="text.secondary">
 									Sign in to see your personal impact.
 								</Typography>
-							</Box>
-						</CardContent>
-					</Card>
-				</Box>
+							</CardContent>
+						</Card>
+					</Box>
+				</Stack>
 			</Container>
 		</Box>
 	);
