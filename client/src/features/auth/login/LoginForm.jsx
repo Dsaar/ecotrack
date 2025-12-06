@@ -62,6 +62,7 @@ function LoginForm({ onSubmitSuccess }) {
 				label="Email"
 				type="email"
 				name="email"
+				autoComplete="email"
 				value={form.email}
 				onChange={handleChange}
 			/>
@@ -69,6 +70,7 @@ function LoginForm({ onSubmitSuccess }) {
 			<PasswordField
 				label="Password"
 				name="password"
+				autoComplete="current-password"
 				value={form.password}
 				onChange={handleChange}
 			/>

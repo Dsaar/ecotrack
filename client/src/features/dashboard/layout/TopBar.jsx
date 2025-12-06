@@ -1,3 +1,4 @@
+// src/features/dashboard/layout/TopBar.jsx
 import {
 	Box,
 	TextField,
@@ -23,7 +24,26 @@ function TopBar() {
 	const { mode, toggleColorMode } = useThemeMode();
 	const navigate = useNavigate();
 
-	const displayName = user?.name || user?.email || "EcoTrack User";
+	// ✅ Robust display name builder
+	const displayName = (() => {
+		if (!user) return "EcoTrack User";
+
+		// If name is an object: { first, last }
+		if (user.name && typeof user.name === "object") {
+			const first = user.name.first || user.name.firstName;
+			const last = user.name.last || user.name.lastName;
+			const full = [first, last].filter(Boolean).join(" ");
+			if (full) return full;
+		}
+
+		// If name is already a string
+		if (typeof user.name === "string") return user.name;
+
+		// Fallback to email
+		if (user.email) return user.email;
+
+		return "EcoTrack User";
+	})();
 
 	const [anchorEl, setAnchorEl] = useState(null);
 	const open = Boolean(anchorEl);
@@ -102,7 +122,7 @@ function TopBar() {
 							fontSize: 16,
 						}}
 					>
-						{displayName[0]?.toUpperCase() || "U"}
+						{displayName.charAt(0).toUpperCase()}
 					</Avatar>
 				</IconButton>
 			</Stack>

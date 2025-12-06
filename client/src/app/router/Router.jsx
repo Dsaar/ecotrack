@@ -1,3 +1,4 @@
+// src/app/router/Router.jsx
 import { Routes, Route, Navigate } from "react-router-dom";
 import Layout from "../layout/Layout.jsx";
 import HomePage from "../../features/landing/pages/HomePage.jsx";
@@ -13,15 +14,36 @@ import DashboardSettings from "../../features/dashboard/pages/DashboardSettings.
 import DashboardMissions from "../../features/dashboard/pages/DashboardMissions.jsx";
 import PublicMissionsPage from "../../features/landing/pages/PublicMissionsPage.jsx";
 import DashboardMissionDetails from "../../features/dashboard/pages/DashboardMissionsDetails.jsx";
+import LoadingSpinner from "../../components/common/LoadingSpinner.jsx";
 
+// ✅ Small helper to protect dashboard routes
+function ProtectedRoute({ children }) {
+	const { user, initializing } = useUser();
 
+	// While we’re checking the token (calling /auth/me), don’t redirect yet
+	if (initializing) {
+		return <LoadingSpinner fullScreen />;
+	}
 
+	// No user after initialization → go to login
+	if (!user) {
+		return <Navigate to="/login" replace />;
+	}
 
-
-
+	return children;
+}
 
 function Router() {
-	const { user } = useUser();
+	// You *can* still read user here if you like, but protection is centralized
+	// const { user } = useUser();
+
+	const renderDashboardPage = (PageComponent) => (
+		<ProtectedRoute>
+			<DashboardLayout>
+				<PageComponent />
+			</DashboardLayout>
+		</ProtectedRoute>
+	);
 
 	return (
 		<Routes>
@@ -34,6 +56,7 @@ function Router() {
 					</Layout>
 				}
 			/>
+
 			<Route
 				path="/missions"
 				element={
@@ -42,6 +65,7 @@ function Router() {
 					</Layout>
 				}
 			/>
+
 			<Route
 				path="/missions/:id"
 				element={
@@ -50,6 +74,7 @@ function Router() {
 					</Layout>
 				}
 			/>
+
 			<Route
 				path="/login"
 				element={
@@ -58,6 +83,7 @@ function Router() {
 					</Layout>
 				}
 			/>
+
 			<Route
 				path="/register"
 				element={
@@ -67,59 +93,26 @@ function Router() {
 				}
 			/>
 
-
-			{/* Dashboard (protected) */}
+			{/* Dashboard (all protected via ProtectedRoute) */}
 			<Route
 				path="/dashboard"
-				element={
-					user ? (
-						<DashboardLayout>
-							<DashboardHome />
-						</DashboardLayout>
-					) : (
-						<Navigate to="/login" replace />
-					)
-				}
+				element={renderDashboardPage(DashboardHome)}
 			/>
-				<Route
-					path="/dashboard/settings"
-					element={
-						user ? (
-							<DashboardLayout>
-								<DashboardSettings />
-							</DashboardLayout>
-						) : (
-							<Navigate to="/login" replace />
-						)
-					}
-				/>
+
+			<Route
+				path="/dashboard/settings"
+				element={renderDashboardPage(DashboardSettings)}
+			/>
+
 			<Route
 				path="/dashboard/missions"
-				element={
-					user ? (
-						<DashboardLayout>
-							<DashboardMissions />
-						</DashboardLayout>
-					) : (
-						<Navigate to="/login" replace />
-					)
-				}
+				element={renderDashboardPage(DashboardMissions)}
 			/>
+
 			<Route
 				path="/dashboard/missions/:id"
-				element={
-					user ? (
-						<DashboardLayout>
-							<DashboardMissionDetails />
-						</DashboardLayout>
-					) : (
-						<Navigate to="/login" replace />
-					)
-				}
+				element={renderDashboardPage(DashboardMissionDetails)}
 			/>
-
-
-
 
 			{/* Catch-all: 404 inside the main Layout */}
 			<Route
@@ -133,6 +126,5 @@ function Router() {
 		</Routes>
 	);
 }
-
 
 export default Router;

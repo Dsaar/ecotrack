@@ -193,14 +193,13 @@ function DashboardMissionDetails() {
 								mb: 1,
 								width: "100%",
 								borderRadius: 2,
-								bgcolor: "grey.900",
+								bgcolor: "grey.900,action.hover",
 								minHeight: 120,
 								display: "flex",
 								alignItems: "center",
 								justifyContent: "center",
 								color: "grey.100",
 								fontSize: 14,
-								bgcolor: "action.hover",
 							}}
 						>
 							{/* Later we can replace this box with mission.image preview */}

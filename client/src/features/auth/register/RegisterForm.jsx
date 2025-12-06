@@ -67,6 +67,7 @@ function RegisterForm({ onSubmitSuccess }) {
 				label="Email"
 				type="email"
 				name="email"
+				autoComplete="email" 
 				value={form.email}
 				onChange={handleChange}
 			/>
@@ -74,6 +75,7 @@ function RegisterForm({ onSubmitSuccess }) {
 			<PasswordField
 				label="Password"
 				name="password"
+				autoComplete="new-password"
 				value={form.password}
 				onChange={handleChange}
 			/>
@@ -81,6 +83,7 @@ function RegisterForm({ onSubmitSuccess }) {
 			<PasswordField
 				label="Confirm password"
 				name="confirmPassword"
+				autoComplete="new-password"
 				value={form.confirmPassword}
 				onChange={handleChange}
 			/>
