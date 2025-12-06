@@ -1,22 +1,29 @@
 // src/services/authService.js
-import apiClient from "./apiClient";
+import apiClient from "./apiClient.js";
 
-// Adjust field names if your backend expects different ones
-
-export async function login({ email, password }) {
-	const res = await apiClient.post("/auth/login", { email, password });
-	// Expecting: { token, user }
+/**
+ * POST /api/auth/login
+ * body: { email, password }
+ */
+export async function login(credentials) {
+	const res = await apiClient.post("/auth/login", credentials);
 	return res.data;
 }
 
+/**
+ * POST /api/auth/register
+ * body: full user object (we'll build it in RegisterForm)
+ */
 export async function register(payload) {
 	const res = await apiClient.post("/auth/register", payload);
-	// Expecting: { token, user }
 	return res.data;
 }
 
+/**
+ * GET /api/auth/me
+ * returns current user based on token
+ */
 export async function getCurrentUser() {
 	const res = await apiClient.get("/auth/me");
-	// Expecting: { user } or just user
 	return res.data;
 }
