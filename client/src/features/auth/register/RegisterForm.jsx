@@ -1,12 +1,6 @@
 // src/features/auth/register/RegisterForm.jsx
 import { useState } from "react";
-import {
-	Box,
-	Button,
-	Typography,
-	Stack,
-	Grid,
-} from "@mui/material";
+import { Box, Button, Typography, Stack, Grid } from "@mui/material";
 import PasswordField from "../../../shared/components/PasswordField.jsx";
 import { useNavigate } from "react-router-dom";
 import { useUser } from "../../../app/providers/UserProvider.jsx";
@@ -16,28 +10,15 @@ import RegisterContactFields from "./RegisterContactFields.jsx";
 import RegisterAddressFields from "./RegisterAdressFields.jsx";
 import RegisterAvatarFields from "./RegisterAvatarFields.jsx";
 
+import initialRegisterForm from "../helpers/initialRegisterForm.js";
+import mapRegisterFormToPayload from "../helpers/mapRegisterFormToPayload.js";
+import validateRegisterForm from "../helpers/validateRegisterForm.js";
+
 function RegisterForm() {
 	const navigate = useNavigate();
 	const { register } = useUser();
 
-	const [form, setForm] = useState({
-		firstName: "",
-		middleName: "",
-		lastName: "",
-		phone: "",
-		email: "",
-		password: "",
-		confirmPassword: "",
-		avatarUrl: "",
-		avatarAlt: "",
-		country: "",
-		state: "",
-		city: "",
-		street: "",
-		houseNumber: "",
-		zip: "",
-	});
-
+	const [form, setForm] = useState(initialRegisterForm);
 	const [submitting, setSubmitting] = useState(false);
 	const [error, setError] = useState("");
 
@@ -50,81 +31,15 @@ function RegisterForm() {
 		e.preventDefault();
 		setError("");
 
-		// --- Minimal validation matching Joi requirements ---
-		if (!form.firstName || form.firstName.trim().length < 2) {
-			setError("First name must be at least 2 characters.");
+		// ✅ Validate via helper
+		const validationError = validateRegisterForm(form);
+		if (validationError) {
+			setError(validationError);
 			return;
 		}
 
-		if (!form.lastName || form.lastName.trim().length < 2) {
-			setError("Last name must be at least 2 characters.");
-			return;
-		}
-
-		if (!form.email) {
-			setError("Email is required.");
-			return;
-		}
-
-		if (!form.password) {
-			setError("Password is required.");
-			return;
-		}
-
-		if (form.password !== form.confirmPassword) {
-			setError("Passwords do not match.");
-			return;
-		}
-
-		if (!form.country || form.country.trim().length < 2) {
-			setError("Country is required.");
-			return;
-		}
-
-		if (!form.city || form.city.trim().length < 2) {
-			setError("City must be at least 2 characters.");
-			return;
-		}
-
-		if (!form.street || form.street.trim().length < 2) {
-			setError("Street must be at least 2 characters.");
-			return;
-		}
-
-		if (!form.houseNumber) {
-			setError("House number is required.");
-			return;
-		}
-
-		const houseNumberNum = Number(form.houseNumber);
-		if (Number.isNaN(houseNumberNum)) {
-			setError("House number must be a number.");
-			return;
-		}
-
-		// Build payload exactly like backend expects
-		const payload = {
-			name: {
-				first: form.firstName.trim(),
-				middle: form.middleName.trim(),
-				last: form.lastName.trim(),
-			},
-			phone: form.phone.trim(),
-			email: form.email.trim(),
-			password: form.password,
-			avatarUrl: {
-				url: form.avatarUrl.trim(),
-				alt: form.avatarAlt.trim() || "User avatar",
-			},
-			address: {
-				state: form.state.trim(),
-				country: form.country.trim(),
-				city: form.city.trim(),
-				street: form.street.trim(),
-				houseNumber: houseNumberNum,
-				zip: form.zip ? Number(form.zip) : undefined,
-			},
-		};
+		// ✅ Build payload via helper
+		const payload = mapRegisterFormToPayload(form);
 
 		try {
 			setSubmitting(true);
@@ -169,7 +84,7 @@ function RegisterForm() {
 			<RegisterNameFields form={form} onChange={handleChange} />
 			<RegisterContactFields form={form} onChange={handleChange} />
 
-			{/* Passwords stay here; they’re short */}
+			{/* Passwords */}
 			<Grid container spacing={2}>
 				<Grid item xs={12} sm={6}>
 					<PasswordField
