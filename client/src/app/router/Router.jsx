@@ -15,6 +15,8 @@ import DashboardMissions from "../../features/dashboard/pages/DashboardMissions.
 import PublicMissionsPage from "../../features/landing/pages/PublicMissionsPage.jsx";
 import DashboardMissionDetails from "../../features/dashboard/pages/DashboardMissionsDetails.jsx";
 import LoadingSpinner from "../../components/common/LoadingSpinner.jsx";
+import DashboardProfile from "../../features/dashboard/pages/DashboardProfile.jsx";
+
 
 // ✅ Small helper to protect dashboard routes
 function ProtectedRoute({ children }) {
@@ -112,6 +114,10 @@ function Router() {
 			<Route
 				path="/dashboard/missions/:id"
 				element={renderDashboardPage(DashboardMissionDetails)}
+			/>
+			<Route
+				path="/dashboard/profile"
+				element={renderDashboardPage(DashboardProfile)}
 			/>
 
 			{/* Catch-all: 404 inside the main Layout */}

@@ -1,13 +1,47 @@
 import User from "../models/Users.js";
 import { isObjectId } from "../utils/isObjectId.js";
 
-export const getMe = async (req, res) => {
-	const user = await User.findById(req.user.id);
-	if (!user) return res.status(404).json({ message: "User not found" });
-	res.json({
-		id: user._id, name: user.name, email: user.email,
-		isAdmin: user.isAdmin, points: user.points, favorites: user.favorites
-	});
+export const getMe = async (req, res, next) => {
+	try {
+		// Exclude passwordHash, return everything else
+		const user = await User.findById(req.user.id).select("-passwordHash");
+
+		if (!user) {
+			return res.status(404).json({ message: "User not found" });
+		}
+
+		// Shape the object exactly how the frontend expects it
+		const {
+			_id,
+			name,
+			email,
+			phone,
+			address,
+			isAdmin,
+			points,
+			favorites,
+			missions,
+			submissions,
+			avatarUrl,
+		} = user;
+
+		return res.json({
+			id: _id,
+			name,
+			email,
+			phone,
+			address,
+			isAdmin,
+			points,
+			favorites,
+			missions,
+			submissions,
+			avatarUrl,
+		});
+	} catch (err) {
+		console.error("[getMe]", err);
+		return next(err);
+	}
 };
 
 export const updateMe = async (req, res, next) => {

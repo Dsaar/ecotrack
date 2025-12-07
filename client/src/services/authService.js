@@ -24,6 +24,12 @@ export async function register(payload) {
  * returns current user based on token
  */
 export async function getCurrentUser() {
-	const res = await apiClient.get("/auth/me");
+	// This hits /api/users/me (full profile from userController.getMe)
+	const res = await apiClient.get("/users/me");
 	return res.data;
 }
+
+/* export async function getCurrentUser() {
+	const res = await apiClient.get("/users/me");
+	return res.data; // expect full user: name, phone, address, points, missions, submissions...
+} */
