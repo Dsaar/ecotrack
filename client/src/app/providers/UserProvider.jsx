@@ -35,9 +35,20 @@ export function UserProvider({ children }) {
     })();
   }, []);
 
-  // ✅ After login, fetch the full user object from /auth/me (or /users/me)
+  const refreshUser = async () => {
+    try {
+      const data = await getCurrentUser();
+      const resolvedUser = data.user || data;
+      setUser(resolvedUser);
+      return resolvedUser;
+    } catch (err) {
+      console.error("Failed to refresh current user:", err);
+      throw err;
+    }
+  };
+
   const login = async (email, password) => {
-    const data = await loginApi({ email, password }); // POST /api/auth/login
+    const data = await loginApi({ email, password });
     if (data.token) {
       localStorage.setItem("token", data.token);
     }
@@ -49,14 +60,13 @@ export function UserProvider({ children }) {
       return { ...data, user: resolvedUser };
     } catch (err) {
       console.warn("login: fallback to user from login response", err);
-      setUser(data.user || null); // fallback if /me fails
+      setUser(data.user || null);
       return data;
     }
   };
 
-  // ✅ Same idea after registration
   const register = async (payload) => {
-    const data = await registerApi(payload); // POST /api/auth/register
+    const data = await registerApi(payload);
     if (data.token) {
       localStorage.setItem("token", data.token);
     }
@@ -86,6 +96,7 @@ export function UserProvider({ children }) {
         login,
         register,
         logout,
+        refreshUser,      // 👈 new helper
       }}
     >
       {children}
