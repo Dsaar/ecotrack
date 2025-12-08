@@ -8,11 +8,11 @@ import {
 
 const UserContext = createContext(null);
 
-export default function UserProvider({ children }) {
+export function UserProvider({ children }) {
   const [user, setUser] = useState(null);
   const [initializing, setInitializing] = useState(true);
 
-  // On first load, try to restore user from token
+  // Restore user from token on first load
   useEffect(() => {
     const token = localStorage.getItem("token");
     if (!token) {
@@ -35,22 +35,42 @@ export default function UserProvider({ children }) {
     })();
   }, []);
 
+  // ✅ After login, fetch the full user object from /auth/me (or /users/me)
   const login = async (email, password) => {
     const data = await loginApi({ email, password }); // POST /api/auth/login
     if (data.token) {
       localStorage.setItem("token", data.token);
     }
-    setUser(data.user || null);
-    return data;
+
+    try {
+      const me = await getCurrentUser();
+      const resolvedUser = me.user || me;
+      setUser(resolvedUser);
+      return { ...data, user: resolvedUser };
+    } catch (err) {
+      console.warn("login: fallback to user from login response", err);
+      setUser(data.user || null); // fallback if /me fails
+      return data;
+    }
   };
 
+  // ✅ Same idea after registration
   const register = async (payload) => {
     const data = await registerApi(payload); // POST /api/auth/register
     if (data.token) {
       localStorage.setItem("token", data.token);
     }
-    setUser(data.user || null);
-    return data;
+
+    try {
+      const me = await getCurrentUser();
+      const resolvedUser = me.user || me;
+      setUser(resolvedUser);
+      return { ...data, user: resolvedUser };
+    } catch (err) {
+      console.warn("register: fallback to user from register response", err);
+      setUser(data.user || null);
+      return data;
+    }
   };
 
   const logout = () => {
@@ -73,6 +93,8 @@ export default function UserProvider({ children }) {
   );
 }
 
-export  function useUser() {
+export function useUser() {
   return useContext(UserContext);
 }
+
+export default UserProvider;

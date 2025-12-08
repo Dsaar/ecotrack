@@ -1,42 +1,57 @@
 // src/features/auth/login/LoginForm.jsx
-
 import { useState } from "react";
 import { Box, Button, TextField, Stack, Typography } from "@mui/material";
 import { useNavigate } from "react-router-dom";
 import PasswordField from "../../../shared/components/PasswordField.jsx";
 import { useUser } from "../../../app/providers/UserProvider.jsx";
 
+import useForm from "../../../shared/hooks/useForm.js";
+import loginSchema from "../../../shared/models/loginSchema.js";
+import { useSnackbar } from "../../../app/providers/SnackBarProvider.jsx";
+
+const initialValues = {
+	email: "",
+	password: "",
+};
+
 function LoginForm({ onSubmitSuccess }) {
-	const [form, setForm] = useState({
-		email: "",
-		password: "",
-	});
-
-	const [error, setError] = useState(null);
-	const { login } = useUser();
 	const navigate = useNavigate();
+	const { login } = useUser();
+	const { showSuccess, showError } = useSnackbar();
 
-	const handleChange = (e) => {
-		const { name, value } = e.target;
-		setForm((prev) => ({ ...prev, [name]: value }));
-	};
+	const [apiError, setApiError] = useState("");
+	const [submitting, setSubmitting] = useState(false);
 
-	const handleSubmit = async (e) => {
-		e.preventDefault();
-		setError(null);
+	const handleLoginSubmit = async (data) => {
+		setApiError("");
+		setSubmitting(true);
 
 		try {
-			// REAL BACKEND LOGIN
-			await login(form.email, form.password);
+			await login(data.email, data.password);
+			showSuccess?.("Welcome back to EcoTrack!");
 
 			if (onSubmitSuccess) onSubmitSuccess();
-
 			navigate("/dashboard");
 		} catch (err) {
 			console.error("Login failed:", err);
-			setError("Invalid email or password");
+			const msg =
+				err?.response?.data?.message ||
+				"Invalid email or password. Please try again.";
+
+			setApiError(msg);
+			showError?.(msg);
+			// throw err; // optional if you want ErrorBoundary to catch
+		} finally {
+			setSubmitting(false);
 		}
 	};
+
+	const {
+		data: form,
+		errors,
+		handleChange,
+		handleSubmit,
+	} = useForm(initialValues, loginSchema, handleLoginSubmit);
 
 	return (
 		<Box
@@ -51,9 +66,9 @@ function LoginForm({ onSubmitSuccess }) {
 				Continue your missions and see your impact.
 			</Typography>
 
-			{error && (
-				<Typography color="error" sx={{ fontSize: 14 }}>
-					{error}
+			{apiError && (
+				<Typography variant="body2" color="error">
+					{apiError}
 				</Typography>
 			)}
 
@@ -62,17 +77,19 @@ function LoginForm({ onSubmitSuccess }) {
 				label="Email"
 				type="email"
 				name="email"
-				autoComplete="email"
 				value={form.email}
 				onChange={handleChange}
+				error={!!errors.email}
+				helperText={errors.email}
 			/>
 
 			<PasswordField
 				label="Password"
 				name="password"
-				autoComplete="current-password"
 				value={form.password}
 				onChange={handleChange}
+				error={!!errors.password}
+				helperText={errors.password}
 			/>
 
 			<Stack
@@ -84,13 +101,14 @@ function LoginForm({ onSubmitSuccess }) {
 				<Button
 					type="submit"
 					variant="contained"
+					disabled={submitting}
 					sx={{
 						textTransform: "none",
 						bgcolor: "#166534",
 						"&:hover": { bgcolor: "#14532d" },
 					}}
 				>
-					Log in
+					{submitting ? "Logging in..." : "Log in"}
 				</Button>
 			</Stack>
 		</Box>

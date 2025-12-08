@@ -1,6 +1,6 @@
+// src/shared/models/registerSchema.js
 import Joi from "joi";
 
-// same regex as backend
 export const passwordRegex =
 	/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[ !"#$%&'()*+,\-./:;<=>?@[\\\]^_`{|}~]).{8,}$/;
 
@@ -34,8 +34,13 @@ const registerSchema = Joi.object({
 	street: Joi.string().min(2).max(256).required().label("Street"),
 	state: Joi.string().allow("").label("State / Region"),
 
+	// ✅ allow empty string OR number
+	zip: Joi.alternatives()
+		.try(Joi.number(), Joi.string().allow(""))
+		.optional()
+		.label("ZIP code"),
+
 	houseNumber: Joi.number().required().label("House number"),
-	zip: Joi.number().allow(null).optional().label("ZIP code"),
 });
 
 export default registerSchema;

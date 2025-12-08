@@ -5,60 +5,97 @@ import PasswordField from "../../../shared/components/PasswordField.jsx";
 import { useNavigate } from "react-router-dom";
 import { useUser } from "../../../app/providers/UserProvider.jsx";
 
+import useForm from "../../../shared/hooks/useForm.js";
+import registerSchema from "../../../shared/models/registerSchema.js";
+import { useSnackbar } from "../../../app/providers/SnackBarProvider.jsx";
+
 import RegisterNameFields from "./RegisterNameFields.jsx";
 import RegisterContactFields from "./RegisterContactFields.jsx";
 import RegisterAddressFields from "./RegisterAdressFields.jsx";
 import RegisterAvatarFields from "./RegisterAvatarFields.jsx";
 
-import initialRegisterForm from "../helpers/initialRegisterForm.js";
-import mapRegisterFormToPayload from "../helpers/mapRegisterFormToPayload.js";
-import validateRegisterForm from "../helpers/validateRegisterForm.js";
+const initialValues = {
+	firstName: "",
+	middleName: "",
+	lastName: "",
+	phone: "",
+	email: "",
+	password: "",
+	confirmPassword: "",
+	avatarUrl: "",
+	avatarAlt: "",
+	country: "",
+	state: "",
+	city: "",
+	street: "",
+	houseNumber: "",
+	zip: "",
+};
 
 function RegisterForm() {
 	const navigate = useNavigate();
 	const { register } = useUser();
+	const { showSuccess, showError } = useSnackbar();
 
-	const [form, setForm] = useState(initialRegisterForm);
+	const [apiError, setApiError] = useState("");
 	const [submitting, setSubmitting] = useState(false);
-	const [error, setError] = useState("");
 
-	const handleChange = (e) => {
-		const { name, value } = e.target;
-		setForm((prev) => ({ ...prev, [name]: value }));
-	};
+	// This function is called ONLY if Joi validation passes
+	const handleRegisterSubmit = async (data) => {
+		setApiError("");
+		setSubmitting(true);
 
-	const handleSubmit = async (e) => {
-		e.preventDefault();
-		setError("");
-
-		// ✅ Validate via helper
-		const validationError = validateRegisterForm(form);
-		if (validationError) {
-			setError(validationError);
-			return;
-		}
-
-		// ✅ Build payload via helper
-		const payload = mapRegisterFormToPayload(form);
+		// Build payload exactly like backend expects
+		const payload = {
+			name: {
+				first: data.firstName.trim(),
+				middle: data.middleName.trim(),
+				last: data.lastName.trim(),
+			},
+			phone: data.phone.trim(),
+			email: data.email.trim(),
+			password: data.password,
+			avatarUrl: {
+				url: data.avatarUrl.trim(),
+				alt: data.avatarAlt.trim() || "User avatar",
+			},
+			address: {
+				state: data.state.trim(),
+				country: data.country.trim(),
+				city: data.city.trim(),
+				street: data.street.trim(),
+				houseNumber: Number(data.houseNumber),
+				zip: data.zip ? Number(data.zip) : undefined,
+			},
+		};
 
 		try {
-			setSubmitting(true);
 			await register(payload);
+			showSuccess?.("Welcome to EcoTrack! Your account was created.");
 			navigate("/dashboard");
 		} catch (err) {
 			console.error("Register failed:", err);
-			console.log("REGISTER ERROR RESPONSE:", err.response?.data);
-
 			const apiMessage =
 				err?.response?.data?.message ||
 				err?.response?.data?.error ||
 				"Registration failed. Please check your details and try again.";
 
-			setError(apiMessage);
+			setApiError(apiMessage);
+			showError?.(apiMessage);
+			// rethrow if you want ErrorBoundary to see it
+			// throw err;
 		} finally {
 			setSubmitting(false);
 		}
 	};
+
+	// ✅ useForm returns `data`; we alias it to `form` so existing code still works
+	const {
+		data: form,
+		errors,
+		handleChange,
+		handleSubmit,
+	} = useForm(initialValues, registerSchema, handleRegisterSubmit);
 
 	return (
 		<Box
@@ -75,16 +112,17 @@ function RegisterForm() {
 				</Typography>
 			</Box>
 
-			{error && (
+			{apiError && (
 				<Typography variant="body2" color="error">
-					{error}
+					{apiError}
 				</Typography>
 			)}
 
+			{/* You can pass errors into these components later if you want field-level error display */}
 			<RegisterNameFields form={form} onChange={handleChange} />
 			<RegisterContactFields form={form} onChange={handleChange} />
 
-			{/* Passwords */}
+			{/* Password fields */}
 			<Grid container spacing={2}>
 				<Grid item xs={12} sm={6}>
 					<PasswordField
@@ -94,7 +132,11 @@ function RegisterForm() {
 						onChange={handleChange}
 						fullWidth
 						required
-						helperText="At least 8 chars, with upper, lower, number and symbol."
+						error={!!errors.password}
+						helperText={
+							errors.password ||
+							"At least 8 chars, with upper, lower, number and symbol."
+						}
 					/>
 				</Grid>
 				<Grid item xs={12} sm={6}>
@@ -105,6 +147,8 @@ function RegisterForm() {
 						onChange={handleChange}
 						fullWidth
 						required
+						error={!!errors.confirmPassword}
+						helperText={errors.confirmPassword}
 					/>
 				</Grid>
 			</Grid>

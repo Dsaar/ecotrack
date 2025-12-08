@@ -6,10 +6,12 @@ import App from "./App.jsx";
 import UserProvider from "./app/providers/UserProvider.jsx";
 import CustomThemeProvider from "./app/providers/CustomThemeProvider.jsx";
 import { SnackbarProvider } from "../src/app/providers/SnackBarProvider.jsx";
+import AppErrorBoundary from "./errors/AppErrorBoundary.jsx";
 
 
 ReactDOM.createRoot(document.getElementById("root")).render(
   <React.StrictMode>
+    <AppErrorBoundary>
     <SnackbarProvider>
     <BrowserRouter>
       <CustomThemeProvider>
@@ -19,5 +21,6 @@ ReactDOM.createRoot(document.getElementById("root")).render(
       </CustomThemeProvider>
     </BrowserRouter>
     </SnackbarProvider>
+    </AppErrorBoundary>
   </React.StrictMode>
 );
