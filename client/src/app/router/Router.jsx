@@ -16,6 +16,8 @@ import PublicMissionsPage from "../../features/landing/pages/PublicMissionsPage.
 import DashboardMissionDetails from "../../features/dashboard/pages/DashboardMissionsDetails.jsx";
 import LoadingSpinner from "../../components/common/LoadingSpinner.jsx";
 import DashboardProfile from "../../features/dashboard/pages/DashboardProfile.jsx";
+import DashboardActivity from "../../features/dashboard/pages/DashboardActivity.jsx";
+
 
 
 // ✅ Small helper to protect dashboard routes
@@ -119,6 +121,11 @@ function Router() {
 				path="/dashboard/profile"
 				element={renderDashboardPage(DashboardProfile)}
 			/>
+			<Route
+				path="/dashboard/activity"
+				element={renderDashboardPage(DashboardActivity)}
+			/>
+
 
 			{/* Catch-all: 404 inside the main Layout */}
 			<Route

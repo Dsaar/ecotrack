@@ -16,14 +16,13 @@ import Logo from "../../../components/common/Logo.jsx";
 function Sidebar() {
 	const navigate = useNavigate();
 	const location = useLocation();
-
 	const items = [
 		{ label: "Overview", icon: <DashboardIcon />, path: "/dashboard" },
 		{ label: "Missions", icon: <AssignmentIcon />, path: "/dashboard/missions" },
-		{ label: "Impact", icon: <ShowChartIcon />, path: "/dashboard/impact" },
+		{ label: "Activity", icon: <ShowChartIcon />, path: "/dashboard/activity" },
 		{ label: "Profile", icon: <PersonIcon />, path: "/dashboard/profile" },
-		// Settings will come back later
 	];
+
 
 	const isActive = (path) => location.pathname === path;
 

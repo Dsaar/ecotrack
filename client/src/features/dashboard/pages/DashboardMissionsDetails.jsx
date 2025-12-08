@@ -1,3 +1,4 @@
+// src/features/dashboard/pages/DashboardMissionsDetails.jsx
 import { useEffect, useState } from "react";
 import {
 	Box,
@@ -15,6 +16,7 @@ import {
 	getMissionById,
 	completeMission,
 } from "../../../services/missionsService.js";
+import { useSnackbar } from "../../../app/providers/SnackBarProvider.jsx";
 
 function StatChip({ label, value, unit }) {
 	if (value == null) return null;
@@ -44,12 +46,12 @@ function StatChip({ label, value, unit }) {
 function DashboardMissionDetails() {
 	const { id } = useParams(); // /dashboard/missions/:id
 	const navigate = useNavigate();
+	const { showSuccess, showError } = useSnackbar();
 
 	const [mission, setMission] = useState(null);
 	const [loading, setLoading] = useState(true);
 	const [completing, setCompleting] = useState(false);
 	const [error, setError] = useState("");
-	const [successMessage, setSuccessMessage] = useState("");
 
 	useEffect(() => {
 		let cancelled = false;
@@ -79,20 +81,32 @@ function DashboardMissionDetails() {
 	}, [id]);
 
 	const handleComplete = async () => {
-		if (!mission) return;
+		if (!mission?._id) return;
+		setError("");
+		setCompleting(true);
 
 		try {
-			setCompleting(true);
-			setError("");
-			setSuccessMessage("");
-
 			await completeMission(mission._id);
-
-			setSuccessMessage("Mission marked as completed! 🎉");
-			// later we can also refetch user progress / dashboard data here
+			showSuccess("Mission submitted for review!");
+			// later: refetch submissions / mission state if we want
 		} catch (err) {
-			console.error("Failed to complete mission:", err);
-			setError("Could not complete this mission. Please try again.");
+			const status = err.response?.status;
+			const apiMessage = err.response?.data?.message;
+
+			if (status === 409) {
+				const msg =
+					apiMessage ||
+					"You already have a pending submission for this mission.";
+				setError(msg);
+				showError(msg);
+			} else {
+				console.error("Failed to complete mission:", err);
+				const msg =
+					apiMessage ||
+					"Could not submit this mission right now. Please try again.";
+				setError(msg);
+				showError(msg);
+			}
 		} finally {
 			setCompleting(false);
 		}
@@ -141,12 +155,7 @@ function DashboardMissionDetails() {
 				</Typography>
 				<Stack direction="row" spacing={1} sx={{ mb: 1 }} flexWrap="wrap">
 					{category && (
-						<Chip
-							size="small"
-							label={category}
-							variant="outlined"
-							color="default"
-						/>
+						<Chip size="small" label={category} variant="outlined" />
 					)}
 					{difficulty && (
 						<Chip
@@ -186,30 +195,35 @@ function DashboardMissionDetails() {
 						bgcolor: "background.paper",
 					}}
 				>
-					<CardContent sx={{ p: 3, display: "flex", flexDirection: "column", gap: 2 }}>
+					<CardContent
+						sx={{ p: 3, display: "flex", flexDirection: "column", gap: 2 }}
+					>
 						{/* Placeholder for future image */}
 						<Box
 							sx={{
 								mb: 1,
 								width: "100%",
 								borderRadius: 2,
-								bgcolor: "grey.900,action.hover",
+								bgcolor: "action.hover",
 								minHeight: 120,
 								display: "flex",
 								alignItems: "center",
 								justifyContent: "center",
-								color: "grey.100",
+								color: "text.secondary",
 								fontSize: 14,
 							}}
 						>
-							{/* Later we can replace this box with mission.image preview */}
 							Mission visual will go here
 						</Box>
 
 						<Typography variant="h6" sx={{ fontWeight: 600 }}>
 							What you’ll do
 						</Typography>
-						<Typography variant="body2" color="text.secondary" sx={{ whiteSpace: "pre-line" }}>
+						<Typography
+							variant="body2"
+							color="text.secondary"
+							sx={{ whiteSpace: "pre-line" }}
+						>
 							{description || "No description provided for this mission yet."}
 						</Typography>
 					</CardContent>
@@ -233,7 +247,11 @@ function DashboardMissionDetails() {
 						}}
 					>
 						<CardContent sx={{ p: 3 }}>
-							<Typography variant="subtitle2" color="text.secondary" sx={{ mb: 1 }}>
+							<Typography
+								variant="subtitle2"
+								color="text.secondary"
+								sx={{ mb: 1 }}
+							>
 								Estimated impact
 							</Typography>
 
@@ -257,14 +275,6 @@ function DashboardMissionDetails() {
 
 							<Divider sx={{ my: 2 }} />
 
-							{successMessage && (
-								<Typography
-									variant="body2"
-									sx={{ mb: 1, color: "success.main", fontWeight: 500 }}
-								>
-									{successMessage}
-								</Typography>
-							)}
 							{error && (
 								<Typography
 									variant="body2"
@@ -286,9 +296,11 @@ function DashboardMissionDetails() {
 									onClick={handleComplete}
 									disabled={completing}
 								>
-									{completing ? "Marking as completed..." : "Mark as completed"}
+									{completing
+										? "Marking as completed..."
+										: "Mark as completed"}
 								</Button>
-								{/* Optional: secondary button for future features */}
+
 								<Button
 									variant="text"
 									fullWidth

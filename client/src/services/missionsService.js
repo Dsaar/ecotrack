@@ -46,9 +46,13 @@ export async function deleteMission(id) {
  * Mark a mission as completed for the current user
  * (adjust the URL if your backend uses a different route)
  */
-export async function completeMission(id) {
-	const response = await apiClient.post("/submissions", {
-		missionId: id,
-	});
-	return response.data;
+export async function completeMission(missionId) {
+	const payload = {
+		missionId,
+		answers: [],       // or add real answers later
+		evidenceUrls: [],  // or a photo / link list later
+	};
+
+	const res = await apiClient.post("/submissions", payload);
+	return res.data; // this is the created Submission document
 }
