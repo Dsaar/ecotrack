@@ -11,6 +11,8 @@ import userExtrasRoutes from "./routes/userExtrasRoutes.js"; // favorites + poin
 import submissionRoutes from "./routes/submissionRoutes.js";
 import adminSubmissionsRoutes from "./routes/admin/submissionAdminRoutes.js";
 import missionRoutes from "./routes/missionRoutes.js";
+import communityRoutes from "./routes/communityRoutes.js";
+
 
 
 const app = express();
@@ -40,6 +42,7 @@ app.use("/api/users", userExtrasRoutes);   // favorites + points management
 app.use("/api/submissions", submissionRoutes);
 app.use("/api/admin/submissions", adminSubmissionsRoutes)
 app.use("/api/missions", missionRoutes);   
+app.use("/api/community", communityRoutes); 
 
 
 

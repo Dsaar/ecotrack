@@ -17,6 +17,8 @@ import DashboardMissionDetails from "../../features/dashboard/pages/DashboardMis
 import LoadingSpinner from "../../components/common/LoadingSpinner.jsx";
 import DashboardProfile from "../../features/dashboard/pages/DashboardProfile.jsx";
 import DashboardActivity from "../../features/dashboard/pages/DashboardActivity.jsx";
+import DashboardCommunity from "../../features/dashboard/pages/DashboardCommunity.jsx";
+
 
 
 
@@ -125,6 +127,11 @@ function Router() {
 				path="/dashboard/activity"
 				element={renderDashboardPage(DashboardActivity)}
 			/>
+			<Route
+				path="/dashboard/community"
+				element={renderDashboardPage(DashboardCommunity)}
+			/>
+
 
 
 			{/* Catch-all: 404 inside the main Layout */}

@@ -12,12 +12,15 @@ import ShowChartIcon from "@mui/icons-material/ShowChart";
 import PersonIcon from "@mui/icons-material/Person";
 import { useNavigate, useLocation } from "react-router-dom";
 import Logo from "../../../components/common/Logo.jsx";
+import GroupsIcon from "@mui/icons-material/Groups";
+
 
 function Sidebar() {
 	const navigate = useNavigate();
 	const location = useLocation();
 	const items = [
 		{ label: "Overview", icon: <DashboardIcon />, path: "/dashboard" },
+		{ label: "Community", icon: <GroupsIcon />, path: "/dashboard/community" },
 		{ label: "Missions", icon: <AssignmentIcon />, path: "/dashboard/missions" },
 		{ label: "Activity", icon: <ShowChartIcon />, path: "/dashboard/activity" },
 		{ label: "Profile", icon: <PersonIcon />, path: "/dashboard/profile" },

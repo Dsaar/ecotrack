@@ -1,23 +1,27 @@
 // src/features/dashboard/components/ProfileMainCard.jsx
-import {
-	Avatar,
-	Box,
-	Button,
-	Card,
-	CardContent,
-	Divider,
-	Stack,
-	TextField,
-	Typography,
-} from "@mui/material";
+import { Card, CardContent, Divider } from "@mui/material";
 import { useState } from "react";
 import { useUser } from "../../../app/providers/UserProvider.jsx";
 import { useSnackbar } from "../../../app/providers/SnackBarProvider.jsx";
 import { updateMe } from "../../../services/userService.js";
+import ProfileHeader from "./ProfileHeader.jsx";
+import ProfileContactSection from "./ProfileContactSection.jsx";
 
 function getFullName(name) {
 	if (!name) return "";
 	return [name.first, name.middle, name.last].filter(Boolean).join(" ");
+}
+
+function makeContactStateFromUser(user) {
+	return {
+		phone: user?.phone || "",
+		country: user?.address?.country || "",
+		city: user?.address?.city || "",
+		street: user?.address?.street || "",
+		houseNumber: user?.address?.houseNumber
+			? String(user.address.houseNumber)
+			: "",
+	};
 }
 
 function ProfileMainCard() {
@@ -27,25 +31,26 @@ function ProfileMainCard() {
 	const fullName = getFullName(user?.name) || "EcoTrack member";
 	const email = user?.email || "No email";
 
-	const makeContactStateFromUser = (u) => ({
-		phone: u?.phone || "",
-		country: u?.address?.country || "",
-		city: u?.address?.city || "",
-		street: u?.address?.street || "",
-		houseNumber: u?.address?.houseNumber ? String(u.address.houseNumber) : "",
-	});
-
 	const [editMode, setEditMode] = useState(false);
-	const [contactForm, setContactForm] = useState(makeContactStateFromUser(user));
+	const [contactForm, setContactForm] = useState(
+		makeContactStateFromUser(user)
+	);
 	const [saving, setSaving] = useState(false);
 
 	const syncFormWithUser = () => {
 		setContactForm(makeContactStateFromUser(user));
 	};
 
-	const handleEditClick = () => {
-		syncFormWithUser();
-		setEditMode(true);
+	const handleToggleEdit = () => {
+		if (editMode) {
+			// leaving edit mode → reset form
+			syncFormWithUser();
+			setEditMode(false);
+		} else {
+			// entering edit mode
+			syncFormWithUser();
+			setEditMode(true);
+		}
 	};
 
 	const handleCancel = () => {
@@ -99,7 +104,6 @@ function ProfileMainCard() {
 		}
 	};
 
-	// Avatar logic
 	const avatarUrl = user?.avatarUrl?.url || null;
 	const avatarAlt = user?.avatarUrl?.alt || fullName;
 	const initialLetter = (fullName[0] || "U").toUpperCase();
@@ -113,153 +117,28 @@ function ProfileMainCard() {
 	return (
 		<Card sx={{ mb: 3, borderRadius: 4 }}>
 			<CardContent>
-				<Stack
-					direction={{ xs: "column", sm: "row" }}
-					spacing={3}
-					alignItems={{ xs: "flex-start", sm: "center" }}
-				>
-					{/* Avatar */}
-					<Avatar
-						src={avatarUrl || undefined}
-						alt={avatarAlt}
-						sx={{
-							width: 64,
-							height: 64,
-							bgcolor: avatarUrl ? "transparent" : "#166534",
-							fontSize: 28,
-							fontWeight: 600,
-						}}
-					>
-						{!avatarUrl && initialLetter}
-					</Avatar>
+				<ProfileHeader
+					fullName={fullName}
+					email={email}
+					avatarUrl={avatarUrl}
+					avatarAlt={avatarAlt}
+					initialLetter={initialLetter}
+					editMode={editMode}
+					onToggleEdit={handleToggleEdit}
+				/>
 
-					<Box sx={{ flexGrow: 1 }}>
-						<Stack
-							direction="row"
-							justifyContent="space-between"
-							alignItems="flex-start"
-							sx={{ mb: 1 }}
-						>
-							<Box>
-								<Typography variant="h6" sx={{ fontWeight: 600 }}>
-									{fullName}
-								</Typography>
-								<Typography variant="body2" color="text.secondary">
-									{email}
-								</Typography>
-								<Box sx={{ mt: 1 }}>
-									<Typography
-										variant="caption"
-										sx={{
-											px: 1.5,
-											py: 0.5,
-											borderRadius: 999,
-											border: "1px solid #e5e7eb",
-										}}
-									>
-										Member
-									</Typography>
-								</Box>
-							</Box>
+				<Divider sx={{ my: 2 }} />
 
-							<Button
-								variant="outlined"
-								size="small"
-								onClick={editMode ? handleCancel : handleEditClick}
-								sx={{ textTransform: "none" }}
-							>
-								{editMode ? "Cancel" : "Edit profile"}
-							</Button>
-						</Stack>
-
-						<Divider sx={{ my: 2 }} />
-
-						<Typography variant="subtitle2" sx={{ mb: 1 }}>
-							Contact
-						</Typography>
-
-						{!editMode ? (
-							<>
-								<Typography variant="body2" color="text.secondary">
-									<strong>Phone:</strong> {user?.phone || "Not provided"}
-								</Typography>
-								<Typography variant="body2" color="text.secondary">
-									<strong>Country:</strong>{" "}
-									{user?.address?.country || "Not provided"}
-								</Typography>
-								<Typography variant="body2" color="text.secondary">
-									<strong>City:</strong> {user?.address?.city || "Not provided"}
-								</Typography>
-								<Typography variant="body2" color="text.secondary">
-									<strong>Street:</strong> {streetDisplay}
-								</Typography>
-							</>
-						) : (
-							<Stack spacing={1.5} sx={{ maxWidth: 400 }}>
-								<TextField
-									label="Phone"
-									name="phone"
-									size="small"
-									value={contactForm.phone}
-									onChange={handleContactChange}
-								/>
-								<TextField
-									label="Country"
-									name="country"
-									size="small"
-									value={contactForm.country}
-									onChange={handleContactChange}
-								/>
-								<TextField
-									label="City"
-									name="city"
-									size="small"
-									value={contactForm.city}
-									onChange={handleContactChange}
-								/>
-								<TextField
-									label="Street"
-									name="street"
-									size="small"
-									value={contactForm.street}
-									onChange={handleContactChange}
-								/>
-								<TextField
-									label="House number"
-									name="houseNumber"
-									size="small"
-									value={contactForm.houseNumber}
-									onChange={handleContactChange}
-								/>
-
-								<Stack direction="row" spacing={1} sx={{ mt: 1 }}>
-									<Button
-										variant="contained"
-										size="small"
-										disabled={saving}
-										onClick={handleSave}
-										sx={{
-											textTransform: "none",
-											bgcolor: "#166534",
-											"&:hover": { bgcolor: "#14532d" },
-										}}
-									>
-										{saving ? "Saving..." : "Save changes"}
-									</Button>
-									<Button
-										variant="text"
-										size="small"
-										disabled={saving}
-										onClick={handleCancel}
-										sx={{ textTransform: "none" }}
-									>
-										Cancel
-									</Button>
-								</Stack>
-							</Stack>
-						)}
-					</Box>
-				</Stack>
+				<ProfileContactSection
+					user={user}
+					streetDisplay={streetDisplay}
+					editMode={editMode}
+					contactForm={contactForm}
+					onContactChange={handleContactChange}
+					onSave={handleSave}
+					onCancel={handleCancel}
+					saving={saving}
+				/>
 			</CardContent>
 		</Card>
 	);

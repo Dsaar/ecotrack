@@ -15,9 +15,12 @@ import {
 import { useUser } from "../../../app/providers/UserProvider.jsx";
 import LoadingSpinner from "../../../components/common/LoadingSpinner.jsx";
 import { getMySubmissions } from "../../../services/submissionsService.js";
+import { useCommunity } from "../../../app/providers/CommunityProvider.jsx";
 
 function DashboardActivity() {
 	const { user } = useUser();
+	const { communityData } = useCommunity();
+
 	const [submissions, setSubmissions] = useState([]);
 	const [loading, setLoading] = useState(true);
 	const [error, setError] = useState("");
@@ -29,10 +32,8 @@ function DashboardActivity() {
 			try {
 				setLoading(true);
 				setError("");
-
 				const data = await getMySubmissions();
 				if (!cancelled) {
-					// backend returns a plain array
 					setSubmissions(Array.isArray(data) ? data : data.submissions || []);
 				}
 			} catch (err) {
@@ -54,11 +55,14 @@ function DashboardActivity() {
 		};
 	}, []);
 
-	// simple derived stats
 	const ecoPoints = user?.points ?? 0;
 	const missionsStarted = user?.missions?.length ?? 0;
 	const favoritesCount = user?.favorites?.missions?.length ?? 0;
 	const submissionsCount = submissions.length;
+
+	const myRank = communityData?.myRank;
+	const pointsRank = myRank?.byPoints?.rank;
+	const totalUsers = myRank?.byPoints?.totalUsers;
 
 	if (loading) {
 		return <LoadingSpinner fullScreen={false} />;
@@ -130,6 +134,19 @@ function DashboardActivity() {
 									Submissions
 								</Typography>
 							</Box>
+
+							{/* New: rank summary from same community data */}
+							{pointsRank && (
+								<Box>
+									<Typography variant="h5" sx={{ fontWeight: 600 }}>
+										#{pointsRank}
+									</Typography>
+									<Typography variant="body2" color="text.secondary">
+										Community rank
+										{totalUsers ? ` of ${totalUsers}` : ""}
+									</Typography>
+								</Box>
+							)}
 						</Stack>
 
 						<Divider sx={{ my: 2 }} />
@@ -157,17 +174,20 @@ function DashboardActivity() {
 						) : (
 							<List dense>
 								{submissions.slice(0, 10).map((sub) => {
-									const mission = sub.missionId || sub.mission; // 👈 backend uses missionId
 									const missionTitle =
-										mission?.title || sub.missionTitle || "Mission";
-									const category = mission?.category || sub.category || "General";
+										sub.missionId?.title ||
+										sub.missionTitle ||
+										"Mission";
+									const category =
+										sub.missionId?.category || sub.category || "General";
 									const createdAt = sub.createdAt
 										? new Date(sub.createdAt).toLocaleString()
 										: "Unknown date";
 
-									// you might add pointsAwarded to submissions later
 									const points =
-										sub.pointsAwarded ?? sub.points ?? mission?.points ?? null;
+										sub.pointsAwarded ??
+										sub.missionId?.points ??
+										null;
 
 									return (
 										<ListItem
@@ -179,7 +199,11 @@ function DashboardActivity() {
 										>
 											<ListItemText
 												primary={
-													<Stack direction="row" spacing={1} alignItems="center">
+													<Stack
+														direction="row"
+														spacing={1}
+														alignItems="center"
+													>
 														<Typography
 															variant="body1"
 															sx={{ fontWeight: 500 }}
@@ -202,33 +226,15 @@ function DashboardActivity() {
 																}}
 															/>
 														)}
-														{sub.status && (
-															<Chip
-																label={sub.status}
-																size="small"
-																sx={{ fontSize: 10 }}
-															/>
-														)}
 													</Stack>
 												}
 												secondary={
-													<>
-														<Typography
-															variant="body2"
-															color="text.secondary"
-														>
-															{createdAt}
-														</Typography>
-														{sub.note && (
-															<Typography
-																variant="body2"
-																color="text.secondary"
-																sx={{ mt: 0.5 }}
-															>
-																{sub.note}
-															</Typography>
-														)}
-													</>
+													<Typography
+														variant="body2"
+														color="text.secondary"
+													>
+														{createdAt}
+													</Typography>
 												}
 											/>
 										</ListItem>

@@ -1,37 +1,36 @@
+// src/features/dashboard/layout/DashboardLayout.jsx
 import { Box } from "@mui/material";
-import Sidebar from "./Sidebar.jsx";
-import TopBar from "./TopBar.jsx";
+import Sidebar from "../layout/Sidebar.jsx";
+import TopBar from "../layout/TopBar.jsx";
+import { CommunityProvider } from "../../../app/providers/CommunityProvider.jsx";
 
 function DashboardLayout({ children }) {
 	return (
-		<Box
-			sx={{
-				minHeight: "100vh",
-				display: "flex",
-				bgcolor: "background.default",
-			}}
-		>
-			<Sidebar />
-
+		<CommunityProvider>
 			<Box
 				sx={{
-					flexGrow: 1,
 					display: "flex",
-					flexDirection: "column",
+					minHeight: "100vh",
+					bgcolor: "background.default",
 				}}
 			>
-				<TopBar />
-				<Box
-					component="main"
-					sx={{
-						flexGrow: 1,
-						p: { xs: 2, md: 3 },
-					}}
-				>
-					{children}
+				<Sidebar />
+				<Box sx={{ flex: 1, display: "flex", flexDirection: "column" }}>
+					<TopBar />
+					<Box
+						component="main"
+						sx={{
+							flex: 1,
+							px: { xs: 2, md: 3 },
+							py: { xs: 2, md: 3 },
+							bgcolor: "background.default",
+						}}
+					>
+						{children}
+					</Box>
 				</Box>
 			</Box>
-		</Box>
+		</CommunityProvider>
 	);
 }
 
