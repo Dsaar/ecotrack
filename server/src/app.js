@@ -12,6 +12,7 @@ import submissionRoutes from "./routes/submissionRoutes.js";
 import adminSubmissionsRoutes from "./routes/admin/submissionAdminRoutes.js";
 import missionRoutes from "./routes/missionRoutes.js";
 import communityRoutes from "./routes/communityRoutes.js";
+import favoritesRoutes from "./routes/favoriteRoutes.js"; 
 
 
 
@@ -43,6 +44,7 @@ app.use("/api/submissions", submissionRoutes);
 app.use("/api/admin/submissions", adminSubmissionsRoutes)
 app.use("/api/missions", missionRoutes);   
 app.use("/api/community", communityRoutes); 
+app.use("/api/favorites", favoritesRoutes);
 
 
 

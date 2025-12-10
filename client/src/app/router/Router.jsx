@@ -18,6 +18,7 @@ import LoadingSpinner from "../../components/common/LoadingSpinner.jsx";
 import DashboardProfile from "../../features/dashboard/pages/DashboardProfile.jsx";
 import DashboardActivity from "../../features/dashboard/pages/DashboardActivity.jsx";
 import DashboardCommunity from "../../features/dashboard/pages/DashboardCommunity.jsx";
+import DashboardFavoritesPage from "../../features/dashboard/pages/DashboardFavoritesPage.jsx";
 
 
 
@@ -131,6 +132,11 @@ function Router() {
 				path="/dashboard/community"
 				element={renderDashboardPage(DashboardCommunity)}
 			/>
+			<Route
+				path="/dashboard/favorites"
+				element={renderDashboardPage(DashboardFavoritesPage)}
+			/>
+
 
 
 
