@@ -9,21 +9,39 @@ import {
 	Stack,
 	Typography,
 	List,
-	ListItem,
+	ListItemButton,
 	ListItemText,
 } from "@mui/material";
+import { useNavigate } from "react-router-dom";
+
 import { useUser } from "../../../app/providers/UserProvider.jsx";
 import LoadingSpinner from "../../../components/common/LoadingSpinner.jsx";
 import { getMySubmissions } from "../../../services/submissionsService.js";
 import { useCommunity } from "../../../app/providers/CommunityProvider.jsx";
 
+
+function statusChipProps(status) {
+	switch (status) {
+		case "approved":
+			return { label: "Approved", color: "success", variant: "outlined" };
+		case "rejected":
+			return { label: "Rejected", color: "error", variant: "outlined" };
+		case "pending":
+		default:
+			return { label: "Pending review", color: "default", variant: "outlined" };
+	}
+}
+
 function DashboardActivity() {
 	const { user } = useUser();
-	const { communityData } = useCommunity();
+	const navigate = useNavigate();
 
 	const [submissions, setSubmissions] = useState([]);
 	const [loading, setLoading] = useState(true);
 	const [error, setError] = useState("");
+	const { communityData } = useCommunity();
+	const myRank = communityData?.myRank?.byPoints;
+
 
 	useEffect(() => {
 		let cancelled = false;
@@ -34,7 +52,7 @@ function DashboardActivity() {
 				setError("");
 				const data = await getMySubmissions();
 				if (!cancelled) {
-					setSubmissions(Array.isArray(data) ? data : data.submissions || []);
+					setSubmissions(Array.isArray(data) ? data : []);
 				}
 			} catch (err) {
 				console.error("Failed to load submissions:", err);
@@ -55,21 +73,18 @@ function DashboardActivity() {
 		};
 	}, []);
 
+	// derived stats
 	const ecoPoints = user?.points ?? 0;
 	const missionsStarted = user?.missions?.length ?? 0;
 	const favoritesCount = user?.favorites?.missions?.length ?? 0;
 	const submissionsCount = submissions.length;
-
-	const myRank = communityData?.myRank;
-	const pointsRank = myRank?.byPoints?.rank;
-	const totalUsers = myRank?.byPoints?.totalUsers;
 
 	if (loading) {
 		return <LoadingSpinner fullScreen={false} />;
 	}
 
 	return (
-		<Box sx={{ p: { xs: 2, md: 3 }, maxWidth: 1100 }}>
+		<Box sx={{ p: { xs: 2, md: 3 }, maxWidth: 1130 }}>
 			<Typography variant="h4" sx={{ fontWeight: 600, mb: 1 }}>
 				My missions & activity
 			</Typography>
@@ -134,19 +149,24 @@ function DashboardActivity() {
 									Submissions
 								</Typography>
 							</Box>
+							<Box
+								onClick={() => navigate("/dashboard/community")}
+								sx={{
+									cursor: "pointer",
+									borderRadius: 2,
+									px: 1.5,
+									py: 0.5,
+									"&:hover": { bgcolor: "action.hover" },
+								}}
+							>
+								<Typography variant="h5" sx={{ fontWeight: 600 }}>
+									{myRank?.rank ? `#${myRank.rank}` : "—"}
+								</Typography>
+								<Typography variant="body2" color="text.secondary">
+									Community rank of {myRank?.totalUsers ?? "—"}
+								</Typography>
+							</Box>
 
-							{/* New: rank summary from same community data */}
-							{pointsRank && (
-								<Box>
-									<Typography variant="h5" sx={{ fontWeight: 600 }}>
-										#{pointsRank}
-									</Typography>
-									<Typography variant="body2" color="text.secondary">
-										Community rank
-										{totalUsers ? ` of ${totalUsers}` : ""}
-									</Typography>
-								</Box>
-							)}
 						</Stack>
 
 						<Divider sx={{ my: 2 }} />
@@ -172,72 +192,79 @@ function DashboardActivity() {
 								from the Missions tab to see your history here.
 							</Typography>
 						) : (
-							<List dense>
+							<List dense sx={{ pt: 0 }}>
 								{submissions.slice(0, 10).map((sub) => {
-									const missionTitle =
-										sub.missionId?.title ||
-										sub.missionTitle ||
-										"Mission";
-									const category =
-										sub.missionId?.category || sub.category || "General";
+									const mission = sub.missionId || {};
+									const missionTitle = mission.title || "Mission";
+									const category = mission.category || "General";
 									const createdAt = sub.createdAt
 										? new Date(sub.createdAt).toLocaleString()
 										: "Unknown date";
 
 									const points =
-										sub.pointsAwarded ??
-										sub.missionId?.points ??
-										null;
+										sub.pointsAwarded ?? mission.points ?? null;
+
+									const chip = statusChipProps(sub.status);
+
+									const handleClick = () => {
+										if (mission._id) {
+											navigate(`/dashboard/missions/${mission._id}`);
+										}
+									};
 
 									return (
-										<ListItem
+										<ListItemButton
 											key={sub._id}
-											sx={{
-												px: 0,
-												alignItems: "flex-start",
-											}}
+											onClick={handleClick}
+											sx={{ px: 1, py: 0.5, borderRadius: 2 }}
 										>
 											<ListItemText
+												primaryTypographyProps={{
+													variant: "body2",
+													sx: { display: "flex", justifyContent: "space-between" },
+												}}
 												primary={
-													<Stack
-														direction="row"
-														spacing={1}
-														alignItems="center"
-													>
-														<Typography
-															variant="body1"
-															sx={{ fontWeight: 500 }}
-														>
+													<>
+														<span>
 															{missionTitle}
-														</Typography>
-														<Chip
-															label={category}
-															size="small"
-															sx={{ fontSize: 10 }}
-														/>
-														{points != null && (
+															{"  "}
 															<Chip
-																label={`+${points} pts`}
+																label={category}
 																size="small"
-																sx={{
-																	fontSize: 10,
-																	bgcolor: "#ecfdf3",
-																	color: "#166534",
-																}}
+																sx={{ ml: 1, fontSize: 10 }}
 															/>
-														)}
-													</Stack>
+														</span>
+														<span style={{ display: "flex", gap: 8 }}>
+															{points != null && (
+																<Chip
+																	label={`+${points} pts`}
+																	size="small"
+																	sx={{
+																		fontSize: 10,
+																		bgcolor: "#ecfdf3",
+																		color: "#166534",
+																	}}
+																/>
+															)}
+															<Chip
+																size="small"
+																{...chip}
+																sx={{ fontSize: 10, ml: 1 }}
+															/>
+														</span>
+													</>
 												}
 												secondary={
 													<Typography
 														variant="body2"
 														color="text.secondary"
+														sx={{ mt: 0.3 }}
 													>
 														{createdAt}
 													</Typography>
 												}
 											/>
-										</ListItem>
+										</ListItemButton>
 									);
 								})}
 							</List>

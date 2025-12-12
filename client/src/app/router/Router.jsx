@@ -19,6 +19,7 @@ import DashboardProfile from "../../features/dashboard/pages/DashboardProfile.js
 import DashboardActivity from "../../features/dashboard/pages/DashboardActivity.jsx";
 import DashboardCommunity from "../../features/dashboard/pages/DashboardCommunity.jsx";
 import DashboardFavoritesPage from "../../features/dashboard/pages/DashboardFavoritesPage.jsx";
+import AdminSubmissionsPage from "../../features/dashboard/pages/admin/AdminSubmissionsPage.jsx";
 
 
 
@@ -136,6 +137,8 @@ function Router() {
 				path="/dashboard/favorites"
 				element={renderDashboardPage(DashboardFavoritesPage)}
 			/>
+			<Route path="/dashboard/admin/submissions" element={<AdminSubmissionsPage />} />
+
 
 
 

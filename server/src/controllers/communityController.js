@@ -120,6 +120,7 @@ export const getCommunityOverview = async (req, res) => {
 
 		// 6) Leaders by points (top 10)
 		const leadersByPoints = usersByPoints.slice(0, 10).map((u) => ({
+			userId: String(u._id),
 			name: u.name?.first || "EcoTracker",
 			points: u.points || 0,
 		}));

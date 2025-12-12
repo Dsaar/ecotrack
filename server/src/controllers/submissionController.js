@@ -24,8 +24,12 @@ export const createSubmission = async (req, res) => {
 export const listMySubmissions = async (req, res) => {
 	try {
 		const items = await Submission.find({ userId: req.user.id })
-			.populate("missionId", "title slug points")
+			.populate(
+				"missionId",
+				"title slug points category difficulty" // 👈 added category + difficulty
+			)
 			.sort({ createdAt: -1 });
+
 		return res.json(items);
 	} catch (e) {
 		console.error("[listMySubmissions]", e);

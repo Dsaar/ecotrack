@@ -1,3 +1,4 @@
+// src/features/dashboard/layout/Sidebar.jsx
 import {
 	Box,
 	List,
@@ -6,29 +7,32 @@ import {
 	ListItemIcon,
 	Typography,
 } from "@mui/material";
+
 import DashboardIcon from "@mui/icons-material/Dashboard";
 import AssignmentIcon from "@mui/icons-material/Assignment";
 import ShowChartIcon from "@mui/icons-material/ShowChart";
 import PersonIcon from "@mui/icons-material/Person";
+import GroupsIcon from "@mui/icons-material/Groups";
+import FavoriteIcon from "@mui/icons-material/Favorite";
+import GavelIcon from "@mui/icons-material/Gavel";
+
 import { useNavigate, useLocation } from "react-router-dom";
 import Logo from "../../../components/common/Logo.jsx";
-import GroupsIcon from "@mui/icons-material/Groups";
-import FavoriteIcon from '@mui/icons-material/Favorite';
-
-
+import { useUser } from "../../../app/providers/UserProvider.jsx";
 
 function Sidebar() {
 	const navigate = useNavigate();
 	const location = useLocation();
+	const { user } = useUser();
+
 	const items = [
 		{ label: "Overview", icon: <DashboardIcon />, path: "/dashboard" },
 		{ label: "Community", icon: <GroupsIcon />, path: "/dashboard/community" },
 		{ label: "Missions", icon: <AssignmentIcon />, path: "/dashboard/missions" },
-		{ label: "Favorites", icon: <FavoriteIcon />, path: "/dashboard/Favorites" },
+		{ label: "Favorites", icon: <FavoriteIcon />, path: "/dashboard/favorites" },
 		{ label: "Activity", icon: <ShowChartIcon />, path: "/dashboard/activity" },
 		{ label: "Profile", icon: <PersonIcon />, path: "/dashboard/profile" },
 	];
-
 
 	const isActive = (path) => location.pathname === path;
 
@@ -64,26 +68,70 @@ function Sidebar() {
 			</Typography>
 
 			<List>
-				{items.map((item) => (
-					<ListItemButton
-						key={item.label}
-						onClick={() => navigate(item.path)}
+				{items.map((item) => {
+					const active = isActive(item.path);
+
+					return (
+						<ListItemButton
+							key={item.label}
+							onClick={() => navigate(item.path)}
+							selected={active}
+							sx={{
+								borderRadius: 2,
+								mb: 0.5,
+								"&:hover": { bgcolor: "action.hover" },
+							}}
+						>
+							<ListItemIcon sx={{ minWidth: 32 }}>{item.icon}</ListItemIcon>
+							<ListItemText
+								primary={item.label}
+								primaryTypographyProps={{ fontSize: 14 }}
+							/>
+						</ListItemButton>
+					);
+				})}
+			</List>
+
+			{/* Admin section */}
+			{user?.isAdmin && (
+				<>
+					<Typography
+						variant="overline"
 						sx={{
-							borderRadius: 2,
-							mb: 0.5,
-							"&:hover": {
-								bgcolor: "action.hover",
-							},
+							color: "text.secondary",
+							fontSize: 11,
+							letterSpacing: 1,
+							px: 1,
+							mt: 3,
+							mb: 1,
 						}}
 					>
-						<ListItemIcon sx={{ minWidth: 32 }}>{item.icon}</ListItemIcon>
-						<ListItemText
-							primary={item.label}
-							primaryTypographyProps={{ fontSize: 14 }}
-						/>
-					</ListItemButton>
-				))}
-			</List>
+						Admin
+					</Typography>
+
+					<List>
+						<ListItemButton
+							onClick={() => navigate("/dashboard/admin/submissions")}
+							selected={location.pathname.startsWith(
+								"/dashboard/admin/submissions"
+							)}
+							sx={{
+								borderRadius: 2,
+								mb: 0.5,
+								"&:hover": { bgcolor: "action.hover" },
+							}}
+						>
+							<ListItemIcon sx={{ minWidth: 32 }}>
+								<GavelIcon />
+							</ListItemIcon>
+							<ListItemText
+								primary="Moderation"
+								primaryTypographyProps={{ fontSize: 14 }}
+							/>
+						</ListItemButton>
+					</List>
+				</>
+			)}
 		</Box>
 	);
 }
