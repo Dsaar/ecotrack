@@ -41,6 +41,19 @@ function ProtectedRoute({ children }) {
 	return children;
 }
 
+function AdminRoute({ children }) {
+	const { user, initializing } = useUser();
+
+	if (initializing) return <LoadingSpinner fullScreen />;
+
+	if (!user) return <Navigate to="/login" replace />;
+
+	if (!user.isAdmin) return <Navigate to="/dashboard" replace />;
+
+	return children;
+}
+
+
 function Router() {
 	// You *can* still read user here if you like, but protection is centralized
 	// const { user } = useUser();
@@ -137,7 +150,17 @@ function Router() {
 				path="/dashboard/favorites"
 				element={renderDashboardPage(DashboardFavoritesPage)}
 			/>
-			<Route path="/dashboard/admin/submissions" element={<AdminSubmissionsPage />} />
+			<Route
+				path="/dashboard/admin/submissions"
+				element={
+					<AdminRoute>
+						<DashboardLayout>
+							<AdminSubmissionsPage />
+						</DashboardLayout>
+					</AdminRoute>
+				}
+			/>
+
 
 
 

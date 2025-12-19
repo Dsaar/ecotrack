@@ -28,15 +28,13 @@ function DashboardMissions() {
 			try {
 				setLoading(true);
 				setError("");
-				const data = await getMissions(); // or a dashboard-specific endpoint
+				const data = await getMissions();
 				if (!cancelled) {
 					setMissions(Array.isArray(data) ? data : data.missions || []);
 				}
 			} catch (err) {
 				console.error("Failed to load dashboard missions:", err);
-				if (!cancelled) {
-					setError("Could not load missions. Please try again.");
-				}
+				if (!cancelled) setError("Could not load missions. Please try again.");
 			} finally {
 				if (!cancelled) setLoading(false);
 			}
@@ -46,6 +44,16 @@ function DashboardMissions() {
 			cancelled = true;
 		};
 	}, []);
+
+	if (loading) {
+		return (
+			<Box sx={{ p: { xs: 2, md: 3 } }}>
+				<Typography variant="body2" color="text.secondary">
+					Loading missions...
+				</Typography>
+			</Box>
+		);
+	}
 
 	return (
 		<Box sx={{ p: { xs: 2, md: 3 } }}>
@@ -69,6 +77,17 @@ function DashboardMissions() {
 							variant="outlined"
 							sx={{ height: "100%", display: "flex", flexDirection: "column" }}
 						>
+							{/* ✅ mission image */}
+							<Box
+								sx={{
+									height: 140,
+									bgcolor: "action.hover",
+									backgroundImage: mission.imageUrl ? `url(${mission.imageUrl})` : "none",
+									backgroundSize: "cover",
+									backgroundPosition: "center",
+								}}
+							/>
+
 							<CardContent sx={{ flexGrow: 1 }}>
 								<Stack
 									direction="row"
@@ -76,24 +95,16 @@ function DashboardMissions() {
 									alignItems="flex-start"
 									sx={{ mb: 1 }}
 								>
-									<Typography
-										variant="subtitle1"
-										sx={{ fontWeight: 600, pr: 1 }}
-									>
+									<Typography variant="subtitle1" sx={{ fontWeight: 600, pr: 1 }}>
 										{mission.title}
 									</Typography>
 
-									{/* ⭐ Favorite button here as well */}
 									<FavoriteButton missionId={mission._id} />
 								</Stack>
 
 								<Stack direction="row" spacing={1} sx={{ mb: 1 }} flexWrap="wrap">
 									{mission.category && (
-										<Chip
-											size="small"
-											label={mission.category}
-											variant="outlined"
-										/>
+										<Chip size="small" label={mission.category} variant="outlined" />
 									)}
 									{mission.difficulty && (
 										<Chip
@@ -111,11 +122,7 @@ function DashboardMissions() {
 									)}
 								</Stack>
 
-								<Typography
-									variant="body2"
-									color="text.secondary"
-									sx={{ mb: 1 }}
-								>
+								<Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
 									{mission.summary}
 								</Typography>
 							</CardContent>

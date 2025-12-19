@@ -1,3 +1,4 @@
+// src/features/dashboard/pages/admin/AdminSubmissionsPage.jsx
 import { useEffect, useMemo, useState } from "react";
 import {
 	Box,
@@ -20,7 +21,10 @@ import {
 	DialogActions,
 	TextField,
 	CircularProgress,
+	Link,
 } from "@mui/material";
+import { useNavigate } from "react-router-dom";
+
 import { useSnackbar } from "../../../../app/providers/SnackBarProvider.jsx";
 import {
 	adminApproveSubmission,
@@ -30,22 +34,27 @@ import {
 import { useUser } from "../../../../app/providers/UserProvider.jsx";
 
 function StatusChip({ status }) {
-	if (status === "approved") return <Chip size="small" label="Approved" color="success" variant="outlined" />;
-	if (status === "rejected") return <Chip size="small" label="Rejected" color="error" variant="outlined" />;
+	if (status === "approved")
+		return <Chip size="small" label="Approved" color="success" variant="outlined" />;
+	if (status === "rejected")
+		return <Chip size="small" label="Rejected" color="error" variant="outlined" />;
 	return <Chip size="small" label="Pending" variant="outlined" />;
 }
 
 export default function AdminSubmissionsPage() {
 	const { user } = useUser();
+	const navigate = useNavigate();
+	const { showSuccess, showError } = useSnackbar();
+
+	// If you already use <AdminRoute> in Router, this is optional.
+	// Keeping it doesn't hurt, but now it will work (navigate exists).
 	useEffect(() => {
 		if (user && !user.isAdmin) navigate("/dashboard");
-	}, [user]);
-	const { showSuccess, showError } = useSnackbar();
+	}, [user, navigate]);
 
 	const [status, setStatus] = useState("pending");
 	const [items, setItems] = useState([]);
 	const [loading, setLoading] = useState(true);
-
 	const [actingId, setActingId] = useState(null);
 
 	// reject dialog state
@@ -91,15 +100,20 @@ export default function AdminSubmissionsPage() {
 		setRejectOpen(true);
 	};
 
+	const closeReject = () => {
+		setRejectOpen(false);
+		setRejectId(null);
+		setRejectReason("");
+	};
+
 	const handleReject = async () => {
 		if (!rejectId) return;
+
 		try {
 			setActingId(rejectId);
 			await adminRejectSubmission(rejectId, rejectReason);
 			showSuccess?.("Submission rejected.");
-			setRejectOpen(false);
-			setRejectId(null);
-			setRejectReason("");
+			closeReject();
 			await load();
 		} catch (err) {
 			console.error("[AdminSubmissionsPage] reject failed", err);
@@ -132,7 +146,7 @@ export default function AdminSubmissionsPage() {
 					<ToggleButton value="rejected">Rejected</ToggleButton>
 				</ToggleButtonGroup>
 
-				<Button variant="outlined" size="small" onClick={load}>
+				<Button variant="outlined" size="small" onClick={load} sx={{ textTransform: "none" }}>
 					Refresh
 				</Button>
 			</Stack>
@@ -155,6 +169,7 @@ export default function AdminSubmissionsPage() {
 									<TableCell>User</TableCell>
 									<TableCell>Status</TableCell>
 									<TableCell>Created</TableCell>
+									<TableCell>Evidence</TableCell>
 									<TableCell align="right">Actions</TableCell>
 								</TableRow>
 							</TableHead>
@@ -163,21 +178,77 @@ export default function AdminSubmissionsPage() {
 								{rows.map((sub) => {
 									const missionTitle = sub?.missionId?.title || "—";
 									const userName =
-										[sub?.userId?.name?.first, sub?.userId?.name?.last].filter(Boolean).join(" ") ||
+										[sub?.userId?.name?.first, sub?.userId?.name?.last]
+											.filter(Boolean)
+											.join(" ") ||
 										sub?.userId?.email ||
 										"—";
-									const created = sub?.createdAt ? new Date(sub.createdAt).toLocaleString() : "—";
+
+									const created = sub?.createdAt
+										? new Date(sub.createdAt).toLocaleString()
+										: "—";
 
 									const busy = actingId === sub._id;
+									const evidence = Array.isArray(sub?.evidenceUrls) ? sub.evidenceUrls : [];
 
 									return (
-										<TableRow key={sub._id} hover>
+										<TableRow key={sub._id} hover sx={{ verticalAlign: "top" }}>
 											<TableCell>{missionTitle}</TableCell>
-											<TableCell>{userName}</TableCell>
 											<TableCell>
-												<StatusChip status={sub.status} />
+												<Stack spacing={0.5}>
+													<Typography variant="body2">{userName}</Typography>
+													{sub?.userId?.email && (
+														<Typography variant="caption" color="text.secondary">
+															{sub.userId.email}
+														</Typography>
+													)}
+												</Stack>
 											</TableCell>
+
+											<TableCell>
+												<Stack spacing={0.5}>
+													<StatusChip status={sub.status} />
+													{status === "rejected" && sub?.rejectionReason && (
+														<Typography variant="caption" color="error">
+															Reason: {sub.rejectionReason}
+														</Typography>
+													)}
+												</Stack>
+											</TableCell>
+
 											<TableCell>{created}</TableCell>
+
+											<TableCell>
+												{evidence.length === 0 ? (
+													<Typography variant="body2" color="text.secondary">
+														—
+													</Typography>
+												) : (
+													<Stack spacing={0.5}>
+														<Typography variant="body2">
+															{evidence.length} link{evidence.length > 1 ? "s" : ""}
+														</Typography>
+														{evidence.slice(0, 2).map((url) => (
+															<Link
+																key={url}
+																href={url}
+																target="_blank"
+																rel="noreferrer"
+																variant="caption"
+																sx={{ wordBreak: "break-all" }}
+															>
+																Open
+															</Link>
+														))}
+														{evidence.length > 2 && (
+															<Typography variant="caption" color="text.secondary">
+																+{evidence.length - 2} more
+															</Typography>
+														)}
+													</Stack>
+												)}
+											</TableCell>
+
 											<TableCell align="right">
 												{status === "pending" ? (
 													<Stack direction="row" spacing={1} justifyContent="flex-end">
@@ -186,10 +257,15 @@ export default function AdminSubmissionsPage() {
 															variant="contained"
 															disabled={busy}
 															onClick={() => handleApprove(sub._id)}
-															sx={{ textTransform: "none", bgcolor: "#166534", "&:hover": { bgcolor: "#14532d" } }}
+															sx={{
+																textTransform: "none",
+																bgcolor: "#166534",
+																"&:hover": { bgcolor: "#14532d" },
+															}}
 														>
 															{busy ? "..." : "Approve"}
 														</Button>
+
 														<Button
 															size="small"
 															variant="outlined"
@@ -217,11 +293,11 @@ export default function AdminSubmissionsPage() {
 			</Card>
 
 			{/* Reject dialog */}
-			<Dialog open={rejectOpen} onClose={() => setRejectOpen(false)} fullWidth maxWidth="sm">
+			<Dialog open={rejectOpen} onClose={closeReject} fullWidth maxWidth="sm">
 				<DialogTitle>Reject submission</DialogTitle>
 				<DialogContent>
 					<Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-						Add an optional reason (visible to the user if you choose to display it later).
+						Add an optional reason. (This is saved in <code>rejectionReason</code> and can be shown to the user.)
 					</Typography>
 					<TextField
 						label="Reason (optional)"
@@ -233,7 +309,7 @@ export default function AdminSubmissionsPage() {
 					/>
 				</DialogContent>
 				<DialogActions>
-					<Button onClick={() => setRejectOpen(false)} sx={{ textTransform: "none" }}>
+					<Button onClick={closeReject} sx={{ textTransform: "none" }}>
 						Cancel
 					</Button>
 					<Button

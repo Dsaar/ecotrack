@@ -2,15 +2,15 @@
 import { useEffect, useState } from "react";
 import { Box, Button, CircularProgress, Stack, Typography } from "@mui/material";
 import { useNavigate, useParams } from "react-router-dom";
-import {
-	getMissionById,
-	completeMission,
-} from "../../../services/missionsService.js";
+
+import { getMissionById, completeMission } from "../../../services/missionsService.js";
 import { useSnackbar } from "../../../app/providers/SnackBarProvider.jsx";
 
 import MissionHeader from "../components/MissionHeader.jsx";
-import MissionDescriptionCard from "../components/MissionDescriptionCard.jsx";
 import MissionImpactPanel from "../components/MissionImpactPanel.jsx";
+
+// ✅ use the SAME card you use elsewhere (expects `mission`)
+import MissionDescriptionCard from "../components/MissionDescriptionCard.jsx";
 
 function DashboardMissionDetails() {
 	const { id } = useParams(); // /dashboard/missions/:id
@@ -22,7 +22,6 @@ function DashboardMissionDetails() {
 	const [completing, setCompleting] = useState(false);
 	const [error, setError] = useState("");
 
-	// Load mission
 	useEffect(() => {
 		let cancelled = false;
 
@@ -31,14 +30,10 @@ function DashboardMissionDetails() {
 				setLoading(true);
 				setError("");
 				const data = await getMissionById(id);
-				if (!cancelled) {
-					setMission(data);
-				}
+				if (!cancelled) setMission(data);
 			} catch (err) {
 				console.error("Failed to load mission:", err);
-				if (!cancelled) {
-					setError("Could not load this mission. Please try again.");
-				}
+				if (!cancelled) setError("Could not load this mission. Please try again.");
 			} finally {
 				if (!cancelled) setLoading(false);
 			}
@@ -50,13 +45,8 @@ function DashboardMissionDetails() {
 		};
 	}, [id]);
 
-	const handleBack = () => {
-		navigate("/dashboard/missions");
-	};
-
-	const handleViewImpact = () => {
-		navigate("/dashboard");
-	};
+	const handleBack = () => navigate("/dashboard/missions");
+	const handleViewImpact = () => navigate("/dashboard");
 
 	const handleComplete = async () => {
 		if (!mission?._id) return;
@@ -65,25 +55,20 @@ function DashboardMissionDetails() {
 
 		try {
 			await completeMission(mission._id);
-			showSuccess("Mission submitted for review!");
-			// later: refetch mission / submissions if needed
+			showSuccess?.("Mission submitted for review!");
 		} catch (err) {
-			const status = err.response?.status;
-			const apiMessage = err.response?.data?.message;
+			const status = err?.response?.status;
+			const apiMessage = err?.response?.data?.message;
 
 			if (status === 409) {
-				const msg =
-					apiMessage ||
-					"You already have a pending submission for this mission.";
+				const msg = apiMessage || "You already have a pending submission for this mission.";
 				setError(msg);
-				showError(msg);
+				showError?.(msg);
 			} else {
 				console.error("Failed to complete mission:", err);
-				const msg =
-					apiMessage ||
-					"Could not submit this mission right now. Please try again.";
+				const msg = apiMessage || "Could not submit this mission right now. Please try again.";
 				setError(msg);
-				showError(msg);
+				showError?.(msg);
 			}
 		} finally {
 			setCompleting(false);
@@ -111,16 +96,13 @@ function DashboardMissionDetails() {
 		);
 	}
 
-	const { title, summary, description, category, difficulty, estImpact } =
-		mission;
-
 	return (
 		<Box sx={{ display: "flex", flexDirection: "column", gap: 3 }}>
 			<MissionHeader
-				title={title}
-				summary={summary}
-				category={category}
-				difficulty={difficulty}
+				title={mission.title}
+				summary={mission.summary}
+				category={mission.category}
+				difficulty={mission.difficulty}
 				onBack={handleBack}
 			/>
 
@@ -129,10 +111,11 @@ function DashboardMissionDetails() {
 				spacing={3}
 				alignItems="flex-start"
 			>
-				<MissionDescriptionCard description={description} />
+				{/* ✅ now this renders title/summary/image/favorite etc */}
+				<MissionDescriptionCard mission={mission} />
 
 				<MissionImpactPanel
-					estImpact={estImpact}
+					estImpact={mission.estImpact}
 					error={error}
 					completing={completing}
 					onComplete={handleComplete}

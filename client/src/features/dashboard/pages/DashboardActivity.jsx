@@ -255,14 +255,23 @@ function DashboardActivity() {
 													</>
 												}
 												secondary={
-													<Typography
-														variant="body2"
-														color="text.secondary"
-														sx={{ mt: 0.3 }}
-													>
-														{createdAt}
-													</Typography>
+													<Stack spacing={0.4} sx={{ mt: 0.3 }}>
+														<Typography variant="body2" color="text.secondary">
+															{createdAt}
+														</Typography>
+
+														{sub.status === "rejected" && sub.rejectionReason && (
+															<Typography
+																variant="body2"
+																color="error"
+																sx={{ opacity: 0.9 }}
+															>
+																Reject Reason: {sub.rejectionReason}
+															</Typography>
+														)}
+													</Stack>
 												}
+
 											/>
 										</ListItemButton>
 									);

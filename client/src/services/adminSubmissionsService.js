@@ -1,8 +1,15 @@
 import apiClient from "./apiClient.js";
 
-export function adminListSubmissions(params = {}) {
-	// params: { status, missionId, userId, page, limit }
-	return apiClient.get("/admin/submissions", { params });
+export function adminListSubmissions({
+	status = "pending",
+	missionId,
+	userId,
+	page = 1,
+	limit = 20,
+} = {}) {
+	return apiClient.get("/admin/submissions", {
+		params: { status, missionId, userId, page, limit },
+	});
 }
 
 export function adminApproveSubmission(id) {

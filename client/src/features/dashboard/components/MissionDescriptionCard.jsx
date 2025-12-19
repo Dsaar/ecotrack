@@ -23,16 +23,11 @@ function MissionDescriptionCard({ mission }) {
 		description,
 		category,
 		difficulty,
-		estImpact,
+		imageUrl,
 	} = mission;
 
-	// Decide where to navigate:
-	// - in dashboard → /dashboard/missions/:id
-	// - public pages → /missions/:id
 	const isDashboard = location.pathname.startsWith("/dashboard");
-	const detailsPath = isDashboard
-		? `/dashboard/missions/${_id}`
-		: `/missions/${_id}`;
+	const detailsPath = isDashboard ? `/dashboard/missions/${_id}` : `/missions/${_id}`;
 
 	const handleCardClick = () => {
 		navigate(detailsPath);
@@ -44,13 +39,10 @@ function MissionDescriptionCard({ mission }) {
 			sx={{
 				borderRadius: 4,
 				cursor: "pointer",
-				"&:hover": {
-					boxShadow: 4,
-				},
+				"&:hover": { boxShadow: 4 },
 			}}
 		>
 			<CardContent sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
-				{/* Top row: title / chips / favorite */}
 				<Stack
 					direction="row"
 					alignItems="flex-start"
@@ -64,12 +56,7 @@ function MissionDescriptionCard({ mission }) {
 
 						<Stack direction="row" spacing={1} flexWrap="wrap">
 							{category && (
-								<Chip
-									label={category}
-									size="small"
-									variant="outlined"
-									color="default"
-								/>
+								<Chip label={category} size="small" variant="outlined" />
 							)}
 							{difficulty && (
 								<Chip
@@ -88,29 +75,27 @@ function MissionDescriptionCard({ mission }) {
 						</Stack>
 
 						{summary && (
-							<Typography
-								variant="body2"
-								color="text.secondary"
-								sx={{ mt: 0.75 }}
-							>
+							<Typography variant="body2" color="text.secondary" sx={{ mt: 0.75 }}>
 								{summary}
 							</Typography>
 						)}
 					</Box>
 
-					{/* ⭐ favorite button – click doesn’t trigger navigation because
-              FavoriteButton does e.stopPropagation() inside */}
+					{/* ⭐ doesn't navigate because it stops propagation */}
 					<FavoriteButton missionId={_id} />
 				</Stack>
 
-				{/* Image placeholder (as you had it) */}
+				{/* ✅ Real mission image */}
 				<Box
 					sx={{
 						mt: 1,
 						width: "100%",
 						borderRadius: 3,
 						bgcolor: "action.hover",
-						minHeight: 120,
+						height: 180,
+						backgroundImage: imageUrl ? `url(${imageUrl})` : "none",
+						backgroundSize: "cover",
+						backgroundPosition: "center",
 						display: "flex",
 						alignItems: "center",
 						justifyContent: "center",
@@ -118,19 +103,14 @@ function MissionDescriptionCard({ mission }) {
 						fontSize: 14,
 					}}
 				>
-					Mission visual will go here
+					{!imageUrl && "No mission image yet"}
 				</Box>
 
-				{/* Description section */}
 				<Box sx={{ mt: 1 }}>
 					<Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 0.5 }}>
 						What you&apos;ll do
 					</Typography>
-					<Typography
-						variant="body2"
-						color="text.secondary"
-						sx={{ whiteSpace: "pre-line" }}
-					>
+					<Typography variant="body2" color="text.secondary" sx={{ whiteSpace: "pre-line" }}>
 						{description || "No description provided for this mission yet."}
 					</Typography>
 				</Box>
