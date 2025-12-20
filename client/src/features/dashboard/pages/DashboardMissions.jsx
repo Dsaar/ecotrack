@@ -1,17 +1,6 @@
 // src/features/dashboard/pages/DashboardMissions.jsx
 import { useEffect, useState, useCallback } from "react";
-import {
-	Box,
-	Card,
-	CardContent,
-	Typography,
-	Grid,
-	Button,
-	Stack,
-	Chip,
-	IconButton,
-	Tooltip,
-} from "@mui/material";
+import { Box, Typography } from "@mui/material";
 import { useNavigate } from "react-router-dom";
 
 import FavoriteButton from "../../missions/components/FavoriteButton.jsx";
@@ -24,8 +13,19 @@ import {
 	patchMission,
 } from "../../../services/missionsService.js";
 
-import PublicIcon from "@mui/icons-material/Public";
-import VisibilityOffIcon from "@mui/icons-material/VisibilityOff";
+import DashboardMissionsGrid from "../components/DashboardMissionsGrid.jsx";
+import AdminMissionEditDialog from "../components/AdminMissionsEditDialog.jsx";
+
+const CATEGORY_OPTIONS = [
+	"Home",
+	"Transport",
+	"Food",
+	"Energy",
+	"Waste",
+	"Water",
+	"Community",
+];
+const DIFFICULTY_OPTIONS = ["Easy", "Medium", "Hard"];
 
 function DashboardMissions() {
 	const [missions, setMissions] = useState([]);
@@ -38,20 +38,33 @@ function DashboardMissions() {
 
 	const isAdmin = !!user?.isAdmin;
 
+	// --- Edit dialog state ---
+	const [editOpen, setEditOpen] = useState(false);
+	const [editId, setEditId] = useState(null);
+	const [editForm, setEditForm] = useState({
+		title: "",
+		summary: "",
+		category: "Home",
+		difficulty: "Easy",
+		points: 10,
+		// imageUrl: "",
+	});
+	const [saving, setSaving] = useState(false);
+
 	const loadMissions = useCallback(async () => {
 		try {
 			setLoading(true);
 			setError("");
 
 			const data = isAdmin ? await getMissionsAdmin() : await getMissions();
-
-			// your API returns an array, but keep your fallback just in case
 			const items = Array.isArray(data) ? data : data?.missions || [];
 			setMissions(items);
 		} catch (err) {
 			console.error("Failed to load dashboard missions:", err);
-			setError(err?.response?.data?.message || "Could not load missions. Please try again.");
-			showError?.(err?.response?.data?.message || "Could not load missions.");
+			const msg =
+				err?.response?.data?.message || "Could not load missions. Please try again.";
+			setError(msg);
+			showError?.(msg);
 		} finally {
 			setLoading(false);
 		}
@@ -73,8 +86,10 @@ function DashboardMissions() {
 			} catch (err) {
 				console.error("Failed to load dashboard missions:", err);
 				if (!cancelled) {
-					setError(err?.response?.data?.message || "Could not load missions. Please try again.");
-					showError?.(err?.response?.data?.message || "Could not load missions.");
+					const msg =
+						err?.response?.data?.message || "Could not load missions. Please try again.";
+					setError(msg);
+					showError?.(msg);
 				}
 			} finally {
 				if (!cancelled) setLoading(false);
@@ -86,9 +101,7 @@ function DashboardMissions() {
 		};
 	}, [isAdmin, showError]);
 
-	const handleTogglePublish = async (e, mission) => {
-		e.stopPropagation(); // don’t trigger card navigation
-
+	const handleTogglePublish = async (mission) => {
 		try {
 			const next = !mission.isPublished;
 
@@ -110,7 +123,69 @@ function DashboardMissions() {
 				)
 			);
 
-			showError?.(err?.response?.data?.message || "Failed to update publish status.");
+			showError?.(
+				err?.response?.data?.message || "Failed to update publish status."
+			);
+		}
+	};
+
+	const openEdit = (mission) => {
+		setEditId(mission._id);
+		setEditForm({
+			title: mission.title || "",
+			summary: mission.summary || "",
+			category: mission.category || "Home",
+			difficulty: mission.difficulty || "Easy",
+			points: Number.isFinite(mission.points) ? mission.points : 10,
+			// imageUrl: mission.imageUrl || "",
+		});
+		setEditOpen(true);
+	};
+
+	const closeEdit = () => {
+		if (saving) return;
+		setEditOpen(false);
+		setEditId(null);
+	};
+
+	const handleSaveEdit = async () => {
+		if (!editId) return;
+
+		if (!editForm.title.trim()) return showError?.("Title is required.");
+		if (!editForm.summary.trim()) return showError?.("Summary is required.");
+		if (!CATEGORY_OPTIONS.includes(editForm.category))
+			return showError?.("Invalid category.");
+		if (!DIFFICULTY_OPTIONS.includes(editForm.difficulty))
+			return showError?.("Invalid difficulty.");
+
+		const pointsNum = Number(editForm.points);
+		if (!Number.isFinite(pointsNum) || pointsNum < 0)
+			return showError?.("Points must be 0 or more.");
+
+		try {
+			setSaving(true);
+
+			const payload = {
+				title: editForm.title.trim(),
+				summary: editForm.summary.trim(),
+				category: editForm.category,
+				difficulty: editForm.difficulty,
+				points: pointsNum,
+				// imageUrl: editForm.imageUrl?.trim() || "",
+			};
+
+			const updated = await patchMission(editId, payload);
+
+			setMissions((prev) => prev.map((m) => (m._id === editId ? updated : m)));
+
+			showSuccess?.("Mission updated.");
+			setEditOpen(false);
+			setEditId(null);
+		} catch (err) {
+			console.error("[DashboardMissions] edit save failed", err);
+			showError?.(err?.response?.data?.message || "Failed to update mission.");
+		} finally {
+			setSaving(false);
 		}
 	};
 
@@ -132,7 +207,7 @@ function DashboardMissions() {
 
 			<Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
 				{isAdmin
-					? "View all missions and toggle publish status."
+					? "View all missions, toggle publish status, and edit mission details."
 					: "Pick a mission, complete it, and watch your eco points grow."}
 			</Typography>
 
@@ -142,134 +217,24 @@ function DashboardMissions() {
 				</Typography>
 			)}
 
-			{missions.length === 0 ? (
-				<Typography variant="body2" color="text.secondary">
-					No missions found.
-				</Typography>
-			) : (
-				<Grid container spacing={2}>
-					{missions.map((mission) => (
-						<Grid item xs={12} sm={6} md={4} key={mission._id}>
-							<Card
-								variant="outlined"
-								onClick={() => navigate(`/dashboard/missions/${mission._id}`)}
-								sx={{
-									height: "100%",
-									display: "flex",
-									flexDirection: "column",
-									cursor: "pointer",
-									"&:hover": { boxShadow: 3 },
-								}}
-							>
-								{/* ✅ mission image */}
-								<Box
-									sx={{
-										height: 140,
-										bgcolor: "action.hover",
-										backgroundImage: mission.imageUrl ? `url(${mission.imageUrl})` : "none",
-										backgroundSize: "cover",
-										backgroundPosition: "center",
-									}}
-								/>
+			<DashboardMissionsGrid
+				missions={missions}
+				isAdmin={isAdmin}
+				onOpenDetails={(id) => navigate(`/dashboard/missions/${id}`)}
+				onEdit={(mission) => openEdit(mission)}
+				onEditPage={(id) => navigate(`/dashboard/admin/missions/${id}/edit`)}
+				onTogglePublish={(mission) => handleTogglePublish(mission)}
+				FavoriteButtonComponent={FavoriteButton}
+			/>
 
-								<CardContent sx={{ flexGrow: 1 }}>
-									<Stack
-										direction="row"
-										justifyContent="space-between"
-										alignItems="flex-start"
-										sx={{ mb: 1 }}
-										spacing={1}
-									>
-										<Typography variant="subtitle1" sx={{ fontWeight: 600, pr: 1 }}>
-											{mission.title}
-										</Typography>
-
-										<Stack direction="row" spacing={0.5} alignItems="center">
-											{/* ⭐ Favorites */}
-											<FavoriteButton missionId={mission._id} />
-
-											{/* ✅ Admin publish toggle */}
-											{isAdmin && (
-												<Tooltip
-													title={
-														mission.isPublished
-															? "Unpublish (hide from public)"
-															: "Publish (show on public)"
-													}
-												>
-													<IconButton
-														size="small"
-														onClick={(e) => handleTogglePublish(e, mission)}
-													>
-														{mission.isPublished ? (
-															<VisibilityOffIcon fontSize="small" />
-														) : (
-															<PublicIcon fontSize="small" />
-														)}
-													</IconButton>
-												</Tooltip>
-											)}
-										</Stack>
-									</Stack>
-
-									<Stack direction="row" spacing={1} sx={{ mb: 1 }} flexWrap="wrap">
-										{mission.category && (
-											<Chip size="small" label={mission.category} variant="outlined" />
-										)}
-
-										{mission.difficulty && (
-											<Chip
-												size="small"
-												label={mission.difficulty}
-												variant="outlined"
-												color={
-													mission.difficulty === "Easy"
-														? "success"
-														: mission.difficulty === "Hard"
-															? "error"
-															: "warning"
-												}
-											/>
-										)}
-
-										{/* ✅ Admin: unpublished indicator */}
-										{isAdmin && mission.isPublished === false && (
-											<Chip
-												size="small"
-												label="Unpublished"
-												variant="outlined"
-												color="warning"
-											/>
-										)}
-									</Stack>
-
-									<Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-										{mission.summary}
-									</Typography>
-								</CardContent>
-
-								<Box sx={{ p: 2, pt: 0 }}>
-									<Button
-										size="small"
-										variant="contained"
-										onClick={(e) => {
-											e.stopPropagation();
-											navigate(`/dashboard/missions/${mission._id}`);
-										}}
-										sx={{
-											textTransform: "none",
-											bgcolor: "#166534",
-											"&:hover": { bgcolor: "#14532d" },
-										}}
-									>
-										View details
-									</Button>
-								</Box>
-							</Card>
-						</Grid>
-					))}
-				</Grid>
-			)}
+			<AdminMissionEditDialog
+				open={editOpen}
+				saving={saving}
+				form={editForm}
+				setForm={setEditForm}
+				onClose={closeEdit}
+				onSave={handleSaveEdit}
+			/>
 		</Box>
 	);
 }

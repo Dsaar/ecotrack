@@ -20,6 +20,8 @@ import DashboardActivity from "../../features/dashboard/pages/DashboardActivity.
 import DashboardCommunity from "../../features/dashboard/pages/DashboardCommunity.jsx";
 import DashboardFavoritesPage from "../../features/dashboard/pages/DashboardFavoritesPage.jsx";
 import AdminSubmissionsPage from "../../features/dashboard/pages/admin/AdminSubmissionsPage.jsx";
+import AdminMissionEditPage from "../../features/dashboard/pages/admin/AdminMissionEditPage.jsx";
+
 
 
 
@@ -160,6 +162,17 @@ function Router() {
 					</AdminRoute>
 				}
 			/>
+			<Route
+				path="/dashboard/admin/missions/:id/edit"
+				element={
+					<AdminRoute>
+						<DashboardLayout>
+							<AdminMissionEditPage />
+						</DashboardLayout>
+					</AdminRoute>
+				}
+			/>
+
 
 
 
