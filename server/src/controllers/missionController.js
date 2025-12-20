@@ -4,7 +4,9 @@ import Mission from "../models/Missions.js";
 export const listMissions = async (req, res) => {
 	try {
 		const { q, category, difficulty } = req.query;
-		const filter = {};
+
+		// ✅ Public route should only return published missions
+		const filter = { isPublished: true };
 
 		if (q) {
 			filter.$or = [
@@ -23,6 +25,32 @@ export const listMissions = async (req, res) => {
 		return res.status(500).json({ message: "Failed to list missions" });
 	}
 };
+
+// GET /api/missions/admin?q=&category=&difficulty=&isPublished=
+export const listMissionsAdmin = async (req, res) => {
+	try {
+		const { q, category, difficulty } = req.query;
+		const filter = {};
+
+		if (q) {
+			filter.$or = [
+				{ title: new RegExp(q, "i") },
+				{ summary: new RegExp(q, "i") },
+				{ description: new RegExp(q, "i") },
+			];
+		}
+		if (category) filter.category = category;
+		if (difficulty) filter.difficulty = difficulty;
+
+		// 🔥 NO isPublished filter
+		const items = await Mission.find(filter).sort({ createdAt: -1 });
+		return res.json(items);
+	} catch (e) {
+		console.error("[listMissionsAdmin]", e);
+		return res.status(500).json({ message: "Failed to list missions (admin)" });
+	}
+};
+
 
 // GET /api/missions/:id
 export const getMissionById = async (req, res) => {

@@ -1,3 +1,4 @@
+// server/src/routes/missionRoutes.js
 import express from "express";
 import { verifyJWT, requireAdmin } from "../middleware/auth.js";
 import { validate } from "../middleware/validate.js";
@@ -8,6 +9,7 @@ import {
 	updateMission,
 	patchMission,
 	deleteMission,
+	listMissionsAdmin,
 } from "../controllers/missionController.js";
 import {
 	createMissionSchema,
@@ -16,8 +18,13 @@ import {
 
 const router = express.Router();
 
-// Public list + details
+// Public list
 router.get("/", listMissions);
+
+// ✅ Admin list (MUST be before "/:id")
+router.get("/admin", verifyJWT, requireAdmin, listMissionsAdmin); 
+
+// Details
 router.get("/:id", getMissionById);
 
 // Admin CRUD

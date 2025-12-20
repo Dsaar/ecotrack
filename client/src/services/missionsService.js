@@ -56,3 +56,13 @@ export async function completeMission(missionId) {
 	const res = await apiClient.post("/submissions", payload);
 	return res.data; // this is the created Submission document
 }
+
+export async function getMissionsAdmin(params = {}) {
+	const response = await apiClient.get("/missions/admin", { params });
+	return response.data;
+}
+
+export async function patchMission(id, updates) {
+	const response = await apiClient.patch(`/missions/${id}`, updates);
+	return response.data;
+}
