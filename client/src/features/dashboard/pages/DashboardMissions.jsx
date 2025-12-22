@@ -1,6 +1,15 @@
 // src/features/dashboard/pages/DashboardMissions.jsx
 import { useEffect, useState, useCallback } from "react";
-import { Box, Button, Stack, Typography } from "@mui/material";
+import {
+	Box,
+	Button,
+	Dialog,
+	DialogActions,
+	DialogContent,
+	DialogTitle,
+	Stack,
+	Typography,
+} from "@mui/material";
 import { useNavigate } from "react-router-dom";
 
 import FavoriteButton from "../../missions/components/FavoriteButton.jsx";
@@ -11,6 +20,7 @@ import {
 	getMissions,
 	getMissionsAdmin,
 	patchMission,
+	deleteMission,
 } from "../../../services/missionsService.js";
 
 import DashboardMissionsGrid from "../components/DashboardMissionsGrid.jsx";
@@ -47,9 +57,52 @@ function DashboardMissions() {
 		category: "Home",
 		difficulty: "Easy",
 		points: 10,
-		// imageUrl: "",
 	});
 	const [saving, setSaving] = useState(false);
+
+	// --- Delete dialog state ---
+	const [deleteOpen, setDeleteOpen] = useState(false);
+	const [deleteTarget, setDeleteTarget] = useState(null); // mission object
+	const [deleting, setDeleting] = useState(false);
+
+	const openDelete = (mission) => {
+		setDeleteTarget(mission);
+		setDeleteOpen(true);
+	};
+
+	const closeDelete = () => {
+		if (deleting) return;
+		setDeleteOpen(false);
+		setDeleteTarget(null);
+	};
+
+	// ✅ FIX: define it here (component scope)
+	const handleConfirmDelete = async () => {
+		if (!deleteTarget?._id) return;
+
+		const id = deleteTarget._id;
+
+		// optimistic remove
+		const prev = missions;
+		setMissions((cur) => cur.filter((m) => m._id !== id));
+
+		try {
+			setDeleting(true);
+			await deleteMission(id);
+			showSuccess?.("Mission deleted.");
+			closeDelete();
+		} catch (err) {
+			console.error("Delete mission failed:", err);
+
+			// rollback
+			setMissions(prev);
+
+			const msg = err?.response?.data?.message || "Failed to delete mission.";
+			showError?.(msg);
+		} finally {
+			setDeleting(false);
+		}
+	};
 
 	const loadMissions = useCallback(async () => {
 		try {
@@ -105,7 +158,6 @@ function DashboardMissions() {
 		try {
 			const next = !mission.isPublished;
 
-			// optimistic UI
 			setMissions((prev) =>
 				prev.map((m) => (m._id === mission._id ? { ...m, isPublished: next } : m))
 			);
@@ -116,7 +168,6 @@ function DashboardMissions() {
 		} catch (err) {
 			console.error("Toggle publish failed:", err);
 
-			// rollback
 			setMissions((prev) =>
 				prev.map((m) =>
 					m._id === mission._id ? { ...m, isPublished: mission.isPublished } : m
@@ -137,7 +188,6 @@ function DashboardMissions() {
 			category: mission.category || "Home",
 			difficulty: mission.difficulty || "Easy",
 			points: Number.isFinite(mission.points) ? mission.points : 10,
-			// imageUrl: mission.imageUrl || "",
 		});
 		setEditOpen(true);
 	};
@@ -171,11 +221,9 @@ function DashboardMissions() {
 				category: editForm.category,
 				difficulty: editForm.difficulty,
 				points: pointsNum,
-				// imageUrl: editForm.imageUrl?.trim() || "",
 			};
 
 			const updated = await patchMission(editId, payload);
-
 			setMissions((prev) => prev.map((m) => (m._id === editId ? updated : m)));
 
 			showSuccess?.("Mission updated.");
@@ -201,12 +249,7 @@ function DashboardMissions() {
 
 	return (
 		<Box sx={{ p: { xs: 2, md: 3 } }}>
-			<Stack
-				direction="row"
-				alignItems="center"
-				justifyContent="space-between"
-				sx={{ mb: 1 }}
-			>
+			<Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 1 }}>
 				<Typography variant="h4" sx={{ fontWeight: 600 }}>
 					{isAdmin ? "Missions (Admin)" : "My missions"}
 				</Typography>
@@ -215,11 +258,7 @@ function DashboardMissions() {
 					<Button
 						variant="contained"
 						onClick={() => navigate("/dashboard/admin/missions/new")}
-						sx={{
-							textTransform: "none",
-							bgcolor: "#166534",
-							"&:hover": { bgcolor: "#14532d" },
-						}}
+						sx={{ textTransform: "none", bgcolor: "#166534", "&:hover": { bgcolor: "#14532d" } }}
 					>
 						Create mission
 					</Button>
@@ -231,7 +270,6 @@ function DashboardMissions() {
 					? "View all missions, toggle publish status, and edit mission details."
 					: "Pick a mission, complete it, and watch your eco points grow."}
 			</Typography>
-
 
 			{error && (
 				<Typography color="error" sx={{ mb: 2 }}>
@@ -246,6 +284,7 @@ function DashboardMissions() {
 				onEdit={(mission) => openEdit(mission)}
 				onEditPage={(id) => navigate(`/dashboard/admin/missions/${id}/edit`)}
 				onTogglePublish={(mission) => handleTogglePublish(mission)}
+				onDelete={(mission) => openDelete(mission)}
 				FavoriteButtonComponent={FavoriteButton}
 			/>
 
@@ -257,6 +296,30 @@ function DashboardMissions() {
 				onClose={closeEdit}
 				onSave={handleSaveEdit}
 			/>
+
+			{/* ✅ Delete confirmation dialog */}
+			<Dialog open={deleteOpen} onClose={closeDelete} fullWidth maxWidth="xs">
+				<DialogTitle>Delete mission?</DialogTitle>
+				<DialogContent>
+					<Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+						This will permanently delete <b>{deleteTarget?.title || "this mission"}</b>.
+					</Typography>
+				</DialogContent>
+				<DialogActions>
+					<Button onClick={closeDelete} disabled={deleting} sx={{ textTransform: "none" }}>
+						Cancel
+					</Button>
+					<Button
+						onClick={handleConfirmDelete}
+						disabled={deleting}
+						variant="contained"
+						color="error"
+						sx={{ textTransform: "none" }}
+					>
+						{deleting ? "Deleting..." : "Delete"}
+					</Button>
+				</DialogActions>
+			</Dialog>
 		</Box>
 	);
 }

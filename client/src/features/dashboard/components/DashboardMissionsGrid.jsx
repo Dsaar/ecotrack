@@ -15,6 +15,8 @@ import {
 import PublicIcon from "@mui/icons-material/Public";
 import VisibilityOffIcon from "@mui/icons-material/VisibilityOff";
 import EditIcon from "@mui/icons-material/Edit";
+import DeleteIcon from "@mui/icons-material/Delete";
+
 
 export default function DashboardMissionsGrid({
 	missions,
@@ -22,6 +24,7 @@ export default function DashboardMissionsGrid({
 	onOpenDetails,
 	onTogglePublish,
 	onEditPage,
+	onDelete,
 	FavoriteButtonComponent,
 }) {
 	if (!missions || missions.length === 0) {
@@ -86,6 +89,18 @@ export default function DashboardMissionsGrid({
 													}}
 												>
 													<EditIcon fontSize="small" />
+												</IconButton>
+											</Tooltip>
+											{/* Delete */}
+											<Tooltip title="Delete mission">
+												<IconButton
+													size="small"
+													onClick={(e) => {
+														e.stopPropagation();
+														onDelete?.(mission); // or onDelete?.(mission._id)
+													}}
+												>
+													<DeleteIcon fontSize="small" />
 												</IconButton>
 											</Tooltip>
 
