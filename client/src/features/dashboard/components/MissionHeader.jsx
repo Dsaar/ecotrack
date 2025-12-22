@@ -1,64 +1,38 @@
-// src/features/dashboard/components/MissionHeader.jsx
-import { Box, Button, Chip, Stack, Typography } from "@mui/material";
+import { Box, Chip, Stack, Typography, Button } from "@mui/material";
 
 export default function MissionHeader({
 	title,
 	summary,
 	category,
 	difficulty,
-	imageUrl,
+	points,
+	duration,
+	tags = [],
 	onBack,
 }) {
 	return (
 		<Box>
-			<Button
-				size="small"
-				sx={{ textTransform: "none", mb: 1 }}
-				onClick={onBack}
-			>
+			<Button onClick={onBack} sx={{ textTransform: "none", mb: 1 }}>
 				← Back to missions
 			</Button>
 
-			{/* Image banner (optional) */}
-			{imageUrl ? (
-				<Box
-					sx={{
-						width: "100%",
-						height: { xs: 160, sm: 200 },
-						borderRadius: 3,
-						overflow: "hidden",
-						border: "1px solid",
-						borderColor: "divider",
-						mb: 2,
-						backgroundImage: `url(${imageUrl})`,
-						backgroundSize: "cover",
-						backgroundPosition: "center",
-					}}
-				/>
-			) : null}
-
-			<Typography variant="h4" sx={{ fontWeight: 700, mb: 0.5 }}>
+			<Typography variant="h4" sx={{ fontWeight: 700, mb: 1 }}>
 				{title}
 			</Typography>
 
-			<Stack direction="row" spacing={1} sx={{ mb: 1 }} flexWrap="wrap">
-				{category && (
-					<Chip size="small" label={category} variant="outlined" />
+			<Stack direction="row" spacing={1} flexWrap="wrap" sx={{ mb: 1 }}>
+				{category && <Chip size="small" label={category} variant="outlined" />}
+				{difficulty && <Chip size="small" label={difficulty} variant="outlined" />}
+
+				{Number.isFinite(points) && (
+					<Chip size="small" label={`${points} pts`} color="success" variant="outlined" />
 				)}
-				{difficulty && (
-					<Chip
-						size="small"
-						label={difficulty}
-						variant="outlined"
-						color={
-							difficulty === "Easy"
-								? "success"
-								: difficulty === "Hard"
-									? "error"
-									: "warning"
-						}
-					/>
-				)}
+
+				{duration && <Chip size="small" label={duration} variant="outlined" />}
+
+				{tags?.slice(0, 5).map((t) => (
+					<Chip key={t} size="small" label={t} variant="outlined" />
+				))}
 			</Stack>
 
 			{summary && (

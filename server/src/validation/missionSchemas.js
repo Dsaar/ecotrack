@@ -15,7 +15,7 @@ export const createMissionSchema = Joi.object({
 		.valid("Home", "Transport", "Food", "Energy", "Waste", "Water", "Community")
 		.default("Home"),
 	difficulty: Joi.string().valid("Easy", "Medium", "Hard").default("Easy"),
-	estImpact: estImpactSchema.default({}),
+	estImpact: estImpactSchema.default({ co2Kg: 0, waterL: 0, wasteKg: 0 }),
 	duration: Joi.string().default("15 min"),
 	imageUrl: Joi.string().uri().allow(""),
 	requiresSubmission: Joi.boolean().default(true),

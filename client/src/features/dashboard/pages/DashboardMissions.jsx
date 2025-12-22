@@ -1,6 +1,6 @@
 // src/features/dashboard/pages/DashboardMissions.jsx
 import { useEffect, useState, useCallback } from "react";
-import { Box, Typography } from "@mui/material";
+import { Box, Button, Stack, Typography } from "@mui/material";
 import { useNavigate } from "react-router-dom";
 
 import FavoriteButton from "../../missions/components/FavoriteButton.jsx";
@@ -201,15 +201,37 @@ function DashboardMissions() {
 
 	return (
 		<Box sx={{ p: { xs: 2, md: 3 } }}>
-			<Typography variant="h4" sx={{ fontWeight: 600, mb: 1 }}>
-				{isAdmin ? "Missions (Admin)" : "My missions"}
-			</Typography>
+			<Stack
+				direction="row"
+				alignItems="center"
+				justifyContent="space-between"
+				sx={{ mb: 1 }}
+			>
+				<Typography variant="h4" sx={{ fontWeight: 600 }}>
+					{isAdmin ? "Missions (Admin)" : "My missions"}
+				</Typography>
+
+				{isAdmin && (
+					<Button
+						variant="contained"
+						onClick={() => navigate("/dashboard/admin/missions/new")}
+						sx={{
+							textTransform: "none",
+							bgcolor: "#166534",
+							"&:hover": { bgcolor: "#14532d" },
+						}}
+					>
+						Create mission
+					</Button>
+				)}
+			</Stack>
 
 			<Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
 				{isAdmin
 					? "View all missions, toggle publish status, and edit mission details."
 					: "Pick a mission, complete it, and watch your eco points grow."}
 			</Typography>
+
 
 			{error && (
 				<Typography color="error" sx={{ mb: 2 }}>

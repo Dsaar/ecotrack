@@ -1,4 +1,3 @@
-// src/features/dashboard/pages/DashboardMissionsDetails.jsx
 import { useEffect, useState } from "react";
 import { Box, Button, CircularProgress, Stack, Typography } from "@mui/material";
 import { useNavigate, useParams } from "react-router-dom";
@@ -8,12 +7,11 @@ import { useSnackbar } from "../../../app/providers/SnackBarProvider.jsx";
 
 import MissionHeader from "../components/MissionHeader.jsx";
 import MissionImpactPanel from "../components/MissionImpactPanel.jsx";
-
-// ✅ use the SAME card you use elsewhere (expects `mission`)
 import MissionDescriptionCard from "../components/MissionDescriptionCard.jsx";
+import MissionRequirementsCard from "../components/MissionRequirementsCard.jsx";
 
 function DashboardMissionDetails() {
-	const { id } = useParams(); // /dashboard/missions/:id
+	const { id } = useParams();
 	const navigate = useNavigate();
 	const { showSuccess, showError } = useSnackbar();
 
@@ -103,24 +101,31 @@ function DashboardMissionDetails() {
 				summary={mission.summary}
 				category={mission.category}
 				difficulty={mission.difficulty}
+				points={mission.points}
+				duration={mission.duration}
+				tags={mission.tags}
 				onBack={handleBack}
 			/>
 
-			<Stack
-				direction={{ xs: "column", md: "row" }}
-				spacing={3}
-				alignItems="flex-start"
-			>
-				{/* ✅ now this renders title/summary/image/favorite etc */}
-				<MissionDescriptionCard mission={mission} />
+			<Stack direction={{ xs: "column", md: "row" }} spacing={3} alignItems="flex-start">
+				<Stack sx={{ flex: 1 }} spacing={3}>
+					<MissionDescriptionCard mission={mission} />
 
-				<MissionImpactPanel
-					estImpact={mission.estImpact}
-					error={error}
-					completing={completing}
-					onComplete={handleComplete}
-					onViewImpact={handleViewImpact}
-				/>
+					<MissionRequirementsCard
+						requiresSubmission={mission.requiresSubmission}
+						submissionSchema={mission.submissionSchema}
+					/>
+				</Stack>
+
+				<Box sx={{ flex: 0.9 }}>
+					<MissionImpactPanel
+						estImpact={mission.estImpact}
+						error={error}
+						completing={completing}
+						onComplete={handleComplete}
+						onViewImpact={handleViewImpact}
+					/>
+				</Box>
 			</Stack>
 		</Box>
 	);
