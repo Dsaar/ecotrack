@@ -38,14 +38,30 @@ const emptyField = () => ({
 	label: "",
 	type: "text",
 	required: true,
-	options: [], // used only for "select"
+	options: [],
 });
+
+// ---- helpers for nested form errors ----
+function getErr(errors, path) {
+	return errors?.[path] || "";
+}
+function clearErr(setErrors, path) {
+	setErrors((prev) => {
+		if (!prev?.[path]) return prev;
+		const next = { ...prev };
+		delete next[path];
+		return next;
+	});
+}
 
 export default function AdminMissionCreatePage() {
 	const navigate = useNavigate();
 	const { showSuccess, showError } = useSnackbar();
 
 	const [saving, setSaving] = useState(false);
+
+	// ✅ field-level errors coming from backend Joi (via apiClient interceptor)
+	const [errors, setErrors] = useState({}); // { "title": "...", "estImpact.co2Kg": "...", ... }
 
 	const [form, setForm] = useState({
 		title: "",
@@ -59,8 +75,7 @@ export default function AdminMissionCreatePage() {
 		imageUrl: "",
 		isPublished: true,
 
-		// ✅ full mission fields
-		tagsText: "", // UI helper: comma separated
+		tagsText: "",
 		requiresSubmission: true,
 		estImpact: { co2Kg: 0, waterL: 0, wasteKg: 0 },
 		submissionSchema: [],
@@ -68,12 +83,18 @@ export default function AdminMissionCreatePage() {
 
 	const autoSlug = useMemo(() => slugify(form.title), [form.title]);
 
-	const setField = (key, value) => setForm((p) => ({ ...p, [key]: value }));
-	const setImpact = (key, value) =>
+	const setField = (key, value) => {
+		setForm((p) => ({ ...p, [key]: value }));
+		clearErr(setErrors, key);
+	};
+
+	const setImpact = (key, value) => {
 		setForm((p) => ({
 			...p,
 			estImpact: { ...p.estImpact, [key]: value },
 		}));
+		clearErr(setErrors, `estImpact.${key}`);
+	};
 
 	// ----- submissionSchema helpers -----
 	const addSubmissionField = () => {
@@ -85,6 +106,15 @@ export default function AdminMissionCreatePage() {
 			...p,
 			submissionSchema: p.submissionSchema.filter((_, i) => i !== index),
 		}));
+
+		// clear any errors for that index (simple approach)
+		setErrors((prev) => {
+			const next = { ...prev };
+			Object.keys(next).forEach((k) => {
+				if (k.startsWith(`submissionSchema.${index}.`)) delete next[k];
+			});
+			return next;
+		});
 	};
 
 	const updateSubmissionField = (index, key, value) => {
@@ -93,9 +123,9 @@ export default function AdminMissionCreatePage() {
 			next[index] = { ...next[index], [key]: value };
 			return { ...p, submissionSchema: next };
 		});
+		clearErr(setErrors, `submissionSchema.${index}.${key}`);
 	};
 
-	// options editor as comma separated string, stored as array
 	const setSubmissionOptionsFromText = (index, text) => {
 		const arr = text
 			.split(",")
@@ -108,12 +138,14 @@ export default function AdminMissionCreatePage() {
 		Array.isArray(field?.options) ? field.options.join(", ") : "";
 
 	const handleSubmit = async () => {
-		// minimal validation (backend Joi will validate too)
+		// clear old errors before submit
+		setErrors({});
+
+		// minimal client checks (backend is source of truth)
 		if (!form.title.trim()) return showError?.("Title is required.");
 		if (!form.summary.trim()) return showError?.("Summary is required.");
 		if (!form.description.trim()) return showError?.("Description is required.");
 
-		// ✅ build full payload
 		const payload = {
 			title: form.title.trim(),
 			slug: (form.slug || autoSlug).trim(),
@@ -139,7 +171,7 @@ export default function AdminMissionCreatePage() {
 			},
 
 			submissionSchema: (form.submissionSchema || [])
-				.filter((f) => f.key?.trim() && f.label?.trim()) // keep only valid
+				.filter((f) => f.key?.trim() && f.label?.trim())
 				.map((f) => ({
 					key: f.key.trim(),
 					label: f.label.trim(),
@@ -156,7 +188,11 @@ export default function AdminMissionCreatePage() {
 			navigate(`/dashboard/missions/${created._id}`);
 		} catch (err) {
 			console.error("[AdminMissionCreatePage] create failed", err);
-			showError?.(err?.response?.data?.message || "Failed to create mission.");
+
+			// ✅ field-level mapping from apiClient interceptor
+			if (err.fieldErrors) setErrors(err.fieldErrors);
+
+			showError?.(err.userMessage || err?.response?.data?.message || "Failed to create mission.");
 		} finally {
 			setSaving(false);
 		}
@@ -197,13 +233,21 @@ export default function AdminMissionCreatePage() {
 			<Card sx={{ borderRadius: 2 }}>
 				<CardContent>
 					<Stack spacing={2}>
-						<TextField label="Title" value={form.title} onChange={(e) => setField("title", e.target.value)} fullWidth />
+						<TextField
+							label="Title"
+							value={form.title}
+							onChange={(e) => setField("title", e.target.value)}
+							error={!!getErr(errors, "title")}
+							helperText={getErr(errors, "title") || " "}
+							fullWidth
+						/>
 
 						<TextField
 							label="Slug"
 							value={form.slug}
 							onChange={(e) => setField("slug", e.target.value)}
-							helperText={`Leave empty to use: ${autoSlug}`}
+							error={!!getErr(errors, "slug")}
+							helperText={getErr(errors, "slug") || `Leave empty to use: ${autoSlug}`}
 							fullWidth
 						/>
 
@@ -211,6 +255,8 @@ export default function AdminMissionCreatePage() {
 							label="Summary"
 							value={form.summary}
 							onChange={(e) => setField("summary", e.target.value)}
+							error={!!getErr(errors, "summary")}
+							helperText={getErr(errors, "summary") || " "}
 							fullWidth
 							multiline
 							minRows={2}
@@ -220,13 +266,23 @@ export default function AdminMissionCreatePage() {
 							label="Description"
 							value={form.description}
 							onChange={(e) => setField("description", e.target.value)}
+							error={!!getErr(errors, "description")}
+							helperText={getErr(errors, "description") || " "}
 							fullWidth
 							multiline
 							minRows={4}
 						/>
 
 						<Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
-							<TextField select label="Category" value={form.category} onChange={(e) => setField("category", e.target.value)} fullWidth>
+							<TextField
+								select
+								label="Category"
+								value={form.category}
+								onChange={(e) => setField("category", e.target.value)}
+								error={!!getErr(errors, "category")}
+								helperText={getErr(errors, "category") || " "}
+								fullWidth
+							>
 								{CATEGORY_OPTIONS.map((c) => (
 									<MenuItem key={c} value={c}>
 										{c}
@@ -234,7 +290,15 @@ export default function AdminMissionCreatePage() {
 								))}
 							</TextField>
 
-							<TextField select label="Difficulty" value={form.difficulty} onChange={(e) => setField("difficulty", e.target.value)} fullWidth>
+							<TextField
+								select
+								label="Difficulty"
+								value={form.difficulty}
+								onChange={(e) => setField("difficulty", e.target.value)}
+								error={!!getErr(errors, "difficulty")}
+								helperText={getErr(errors, "difficulty") || " "}
+								fullWidth
+							>
 								{DIFFICULTY_OPTIONS.map((d) => (
 									<MenuItem key={d} value={d}>
 										{d}
@@ -244,18 +308,41 @@ export default function AdminMissionCreatePage() {
 						</Stack>
 
 						<Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
-							<TextField label="Duration" value={form.duration} onChange={(e) => setField("duration", e.target.value)} fullWidth />
-							<TextField label="Points" type="number" value={form.points} onChange={(e) => setField("points", e.target.value)} fullWidth />
+							<TextField
+								label="Duration"
+								value={form.duration}
+								onChange={(e) => setField("duration", e.target.value)}
+								error={!!getErr(errors, "duration")}
+								helperText={getErr(errors, "duration") || " "}
+								fullWidth
+							/>
+							<TextField
+								label="Points"
+								type="number"
+								value={form.points}
+								onChange={(e) => setField("points", e.target.value)}
+								error={!!getErr(errors, "points")}
+								helperText={getErr(errors, "points") || " "}
+								fullWidth
+							/>
 						</Stack>
 
-						<TextField label="Image URL" value={form.imageUrl} onChange={(e) => setField("imageUrl", e.target.value)} fullWidth />
+						<TextField
+							label="Image URL"
+							value={form.imageUrl}
+							onChange={(e) => setField("imageUrl", e.target.value)}
+							error={!!getErr(errors, "imageUrl")}
+							helperText={getErr(errors, "imageUrl") || " "}
+							fullWidth
+						/>
 
 						<TextField
 							label="Tags (comma-separated)"
 							value={form.tagsText}
 							onChange={(e) => setField("tagsText", e.target.value)}
+							error={!!getErr(errors, "tags")}
+							helperText={getErr(errors, "tags") || 'Example: "water, home, habits"'}
 							fullWidth
-							helperText='Example: "water, home, habits"'
 						/>
 
 						<Divider />
@@ -265,20 +352,54 @@ export default function AdminMissionCreatePage() {
 						</Typography>
 
 						<Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
-							<TextField label="CO₂ (kg)" type="number" value={form.estImpact.co2Kg} onChange={(e) => setImpact("co2Kg", e.target.value)} fullWidth />
-							<TextField label="Water (L)" type="number" value={form.estImpact.waterL} onChange={(e) => setImpact("waterL", e.target.value)} fullWidth />
-							<TextField label="Waste (kg)" type="number" value={form.estImpact.wasteKg} onChange={(e) => setImpact("wasteKg", e.target.value)} fullWidth />
+							<TextField
+								label="CO₂ (kg)"
+								type="number"
+								value={form.estImpact.co2Kg}
+								onChange={(e) => setImpact("co2Kg", e.target.value)}
+								error={!!getErr(errors, "estImpact.co2Kg")}
+								helperText={getErr(errors, "estImpact.co2Kg") || " "}
+								fullWidth
+							/>
+							<TextField
+								label="Water (L)"
+								type="number"
+								value={form.estImpact.waterL}
+								onChange={(e) => setImpact("waterL", e.target.value)}
+								error={!!getErr(errors, "estImpact.waterL")}
+								helperText={getErr(errors, "estImpact.waterL") || " "}
+								fullWidth
+							/>
+							<TextField
+								label="Waste (kg)"
+								type="number"
+								value={form.estImpact.wasteKg}
+								onChange={(e) => setImpact("wasteKg", e.target.value)}
+								error={!!getErr(errors, "estImpact.wasteKg")}
+								helperText={getErr(errors, "estImpact.wasteKg") || " "}
+								fullWidth
+							/>
 						</Stack>
 
 						<Divider />
 
 						<Stack direction={{ xs: "column", sm: "row" }} spacing={2} alignItems="center">
 							<FormControlLabel
-								control={<Switch checked={form.requiresSubmission} onChange={(e) => setField("requiresSubmission", e.target.checked)} />}
+								control={
+									<Switch
+										checked={form.requiresSubmission}
+										onChange={(e) => setField("requiresSubmission", e.target.checked)}
+									/>
+								}
 								label="Requires submission"
 							/>
 							<FormControlLabel
-								control={<Switch checked={form.isPublished} onChange={(e) => setField("isPublished", e.target.checked)} />}
+								control={
+									<Switch
+										checked={form.isPublished}
+										onChange={(e) => setField("isPublished", e.target.checked)}
+									/>
+								}
 								label="Published"
 							/>
 						</Stack>
@@ -328,13 +449,16 @@ export default function AdminMissionCreatePage() {
 														label="Key"
 														value={f.key}
 														onChange={(e) => updateSubmissionField(idx, "key", e.target.value)}
+														error={!!getErr(errors, `submissionSchema.${idx}.key`)}
+														helperText={getErr(errors, `submissionSchema.${idx}.key`) || 'Example: "photo" or "bags"'}
 														fullWidth
-														helperText='Example: "photo" or "bags"'
 													/>
 													<TextField
 														label="Label"
 														value={f.label}
 														onChange={(e) => updateSubmissionField(idx, "label", e.target.value)}
+														error={!!getErr(errors, `submissionSchema.${idx}.label`)}
+														helperText={getErr(errors, `submissionSchema.${idx}.label`) || " "}
 														fullWidth
 													/>
 												</Stack>
@@ -345,6 +469,8 @@ export default function AdminMissionCreatePage() {
 														label="Type"
 														value={f.type}
 														onChange={(e) => updateSubmissionField(idx, "type", e.target.value)}
+														error={!!getErr(errors, `submissionSchema.${idx}.type`)}
+														helperText={getErr(errors, `submissionSchema.${idx}.type`) || " "}
 														fullWidth
 													>
 														{FIELD_TYPES.map((t) => (
@@ -370,6 +496,8 @@ export default function AdminMissionCreatePage() {
 														label="Options (comma-separated)"
 														value={getSubmissionOptionsText(f)}
 														onChange={(e) => setSubmissionOptionsFromText(idx, e.target.value)}
+														error={!!getErr(errors, `submissionSchema.${idx}.options`)}
+														helperText={getErr(errors, `submissionSchema.${idx}.options`) || " "}
 														fullWidth
 													/>
 												)}
