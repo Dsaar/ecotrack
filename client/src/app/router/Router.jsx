@@ -22,6 +22,8 @@ import DashboardFavoritesPage from "../../features/dashboard/pages/DashboardFavo
 import AdminSubmissionsPage from "../../features/dashboard/pages/admin/AdminSubmissionsPage.jsx";
 import AdminMissionEditPage from "../../features/dashboard/pages/admin/AdminMissionEditPage.jsx";
 import AdminMissionCreatePage from "../../features/dashboard/pages/admin/AdminMissionCreatePage.jsx";
+import AdminUsersPage from "../../features/dashboard/pages/admin/AdminUsersPage.jsx";
+
 
 
 
@@ -184,6 +186,17 @@ function Router() {
 					</AdminRoute>
 				}
 			/>
+			<Route
+				path="/dashboard/admin/users"
+				element={
+					<AdminRoute>
+						<DashboardLayout>
+							<AdminUsersPage />
+						</DashboardLayout>
+					</AdminRoute>
+				}
+			/>
+
 
 
 

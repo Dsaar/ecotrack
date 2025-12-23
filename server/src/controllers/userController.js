@@ -115,15 +115,28 @@ export const getUserById = async (req, res) => {
 
 // ---- Admin only ----
 export const listUsers = async (_req, res) => {
-	const users = await User.find().select("name email isAdmin points");
+	const users = await User.find().select("name email phone isAdmin points");
 	res.json(users);
 };
 
 export const deleteUser = async (req, res) => {
-	const { id } = req.params;
-	await User.findByIdAndDelete(id);
-	res.status(204).end();
+	try {
+		const { id } = req.params;
+
+		if (!isObjectId(id)) {
+			return res.status(400).json({ message: "Invalid user id" });
+		}
+
+		const deleted = await User.findByIdAndDelete(id);
+		if (!deleted) return res.status(404).json({ message: "User not found" });
+
+		return res.status(204).end();
+	} catch (err) {
+		console.error("[deleteUser]", err);
+		return res.status(500).json({ message: "Failed to delete user" });
+	}
 };
+
 
 export const adminUpdateUser = async (req, res) => {
 	try {
@@ -143,11 +156,13 @@ export const adminUpdateUser = async (req, res) => {
 
 		if (!user) return res.status(404).json({ message: "User not found" });
 
-		const { _id, name, email, isAdmin, points, favorites, avatarUrl } = user;
+		const { _id, name, email, phone, isAdmin, points, favorites, avatarUrl } = user;
+
 		return res.json({
-			id: _id,
+			_id,
 			name,
 			email,
+			phone,
 			isAdmin,
 			points,
 			favorites,

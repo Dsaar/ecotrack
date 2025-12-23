@@ -15,6 +15,8 @@ import PersonIcon from "@mui/icons-material/Person";
 import GroupsIcon from "@mui/icons-material/Groups";
 import FavoriteIcon from "@mui/icons-material/Favorite";
 import GavelIcon from "@mui/icons-material/Gavel";
+import PeopleIcon from "@mui/icons-material/People";
+
 
 import { useNavigate, useLocation } from "react-router-dom";
 import Logo from "../../../components/common/Logo.jsx";
@@ -126,6 +128,23 @@ function Sidebar() {
 							</ListItemIcon>
 							<ListItemText
 								primary="Moderation"
+								primaryTypographyProps={{ fontSize: 14 }}
+							/>
+						</ListItemButton>
+						<ListItemButton
+							onClick={() => navigate("/dashboard/admin/users")}
+							selected={location.pathname.startsWith("/dashboard/admin/users")}
+							sx={{
+								borderRadius: 2,
+								mb: 0.5,
+								"&:hover": { bgcolor: "action.hover" },
+							}}
+						>
+							<ListItemIcon sx={{ minWidth: 32 }}>
+								<PeopleIcon />
+							</ListItemIcon>
+							<ListItemText
+								primary="Users"
 								primaryTypographyProps={{ fontSize: 14 }}
 							/>
 						</ListItemButton>
