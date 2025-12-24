@@ -22,6 +22,7 @@ import {
 	TextField,
 	CircularProgress,
 	Link,
+	Divider,
 } from "@mui/material";
 import { useNavigate } from "react-router-dom";
 
@@ -41,13 +42,16 @@ function StatusChip({ status }) {
 	return <Chip size="small" label="Pending" variant="outlined" />;
 }
 
+function isLikelyImageUrl(url = "") {
+	// quick heuristic: file extension OR common image hosts you use
+	return /\.(png|jpe?g|gif|webp|bmp|svg)$/i.test(url) || url.includes("picsum.photos");
+}
+
 export default function AdminSubmissionsPage() {
 	const { user } = useUser();
 	const navigate = useNavigate();
 	const { showSuccess, showError } = useSnackbar();
 
-	// If you already use <AdminRoute> in Router, this is optional.
-	// Keeping it doesn't hurt, but now it will work (navigate exists).
 	useEffect(() => {
 		if (user && !user.isAdmin) navigate("/dashboard");
 	}, [user, navigate]);
@@ -61,6 +65,19 @@ export default function AdminSubmissionsPage() {
 	const [rejectOpen, setRejectOpen] = useState(false);
 	const [rejectId, setRejectId] = useState(null);
 	const [rejectReason, setRejectReason] = useState("");
+
+	// ✅ view dialog state
+	const [viewOpen, setViewOpen] = useState(false);
+	const [viewTarget, setViewTarget] = useState(null);
+
+	const openView = (sub) => {
+		setViewTarget(sub);
+		setViewOpen(true);
+	};
+	const closeView = () => {
+		setViewOpen(false);
+		setViewTarget(null);
+	};
 
 	const load = async () => {
 		try {
@@ -124,6 +141,18 @@ export default function AdminSubmissionsPage() {
 	};
 
 	const rows = useMemo(() => items, [items]);
+
+	// ✅ modal derived data
+	const viewMissionTitle = viewTarget?.missionId?.title || "—";
+	const viewUserName =
+		[viewTarget?.userId?.name?.first, viewTarget?.userId?.name?.last]
+			.filter(Boolean)
+			.join(" ") ||
+		viewTarget?.userId?.email ||
+		"—";
+
+	const viewAnswers = Array.isArray(viewTarget?.answers) ? viewTarget.answers : [];
+	const viewEvidence = Array.isArray(viewTarget?.evidenceUrls) ? viewTarget.evidenceUrls : [];
 
 	return (
 		<Box sx={{ p: { xs: 2, md: 3 }, maxWidth: 1200 }}>
@@ -194,6 +223,7 @@ export default function AdminSubmissionsPage() {
 									return (
 										<TableRow key={sub._id} hover sx={{ verticalAlign: "top" }}>
 											<TableCell>{missionTitle}</TableCell>
+
 											<TableCell>
 												<Stack spacing={0.5}>
 													<Typography variant="body2">{userName}</Typography>
@@ -228,7 +258,9 @@ export default function AdminSubmissionsPage() {
 														<Typography variant="body2">
 															{evidence.length} link{evidence.length > 1 ? "s" : ""}
 														</Typography>
-														{evidence.slice(0, 2).map((url) => (
+
+														{/* show a tiny hint */}
+														{evidence.slice(0, 1).map((url) => (
 															<Link
 																key={url}
 																href={url}
@@ -240,9 +272,10 @@ export default function AdminSubmissionsPage() {
 																Open
 															</Link>
 														))}
-														{evidence.length > 2 && (
+
+														{evidence.length > 1 && (
 															<Typography variant="caption" color="text.secondary">
-																+{evidence.length - 2} more
+																+{evidence.length - 1} more
 															</Typography>
 														)}
 													</Stack>
@@ -250,38 +283,50 @@ export default function AdminSubmissionsPage() {
 											</TableCell>
 
 											<TableCell align="right">
-												{status === "pending" ? (
-													<Stack direction="row" spacing={1} justifyContent="flex-end">
-														<Button
-															size="small"
-															variant="contained"
-															disabled={busy}
-															onClick={() => handleApprove(sub._id)}
-															sx={{
-																textTransform: "none",
-																bgcolor: "#166534",
-																"&:hover": { bgcolor: "#14532d" },
-															}}
-														>
-															{busy ? "..." : "Approve"}
-														</Button>
+												<Stack direction="row" spacing={1} justifyContent="flex-end">
+													<Button
+														size="small"
+														variant="outlined"
+														onClick={() => openView(sub)}
+														sx={{ textTransform: "none" }}
+													>
+														View
+													</Button>
 
-														<Button
-															size="small"
-															variant="outlined"
-															color="error"
-															disabled={busy}
-															onClick={() => openReject(sub._id)}
-															sx={{ textTransform: "none" }}
-														>
-															Reject
-														</Button>
-													</Stack>
-												) : (
-													<Typography variant="body2" color="text.secondary">
-														—
-													</Typography>
-												)}
+													{status === "pending" ? (
+														<>
+															<Button
+																size="small"
+																variant="contained"
+																color=""
+																disabled={busy}
+																onClick={() => handleApprove(sub._id)}
+																sx={{
+																	textTransform: "none",
+																	bgcolor: "#166534",
+																	"&:hover": { bgcolor: "#14532d" },
+																}}
+															>
+																{busy ? "..." : "Approve"}
+															</Button>
+
+															<Button
+																size="small"
+																variant="outlined"
+																color="error"
+																disabled={busy}
+																onClick={() => openReject(sub._id)}
+																sx={{ textTransform: "none" }}
+															>
+																Reject
+															</Button>
+														</>
+													) : (
+														<Typography variant="body2" color="text.secondary">
+															—
+														</Typography>
+													)}
+												</Stack>
 											</TableCell>
 										</TableRow>
 									);
@@ -291,6 +336,130 @@ export default function AdminSubmissionsPage() {
 					)}
 				</CardContent>
 			</Card>
+
+			{/* ✅ View dialog */}
+			<Dialog open={viewOpen} onClose={closeView} fullWidth maxWidth="md">
+				<DialogTitle>Submission details</DialogTitle>
+				<DialogContent>
+					<Stack spacing={2} sx={{ mt: 1 }}>
+						<Stack spacing={0.5}>
+							<Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
+								{viewMissionTitle}
+							</Typography>
+							<Typography variant="body2" color="text.secondary">
+								Submitted by: {viewUserName}
+							</Typography>
+							{viewTarget?.createdAt && (
+								<Typography variant="caption" color="text.secondary">
+									Created: {new Date(viewTarget.createdAt).toLocaleString()}
+								</Typography>
+							)}
+						</Stack>
+
+						<Divider />
+
+						{/* Answers */}
+						<Box>
+							<Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 1 }}>
+								Answers
+							</Typography>
+
+							{viewAnswers.length === 0 ? (
+								<Typography variant="body2" color="text.secondary">
+									No answers provided.
+								</Typography>
+							) : (
+								<Stack spacing={1}>
+									{viewAnswers.map((a, idx) => (
+										<Box
+											key={`${a.key}-${idx}`}
+											sx={{
+												border: "1px solid",
+												borderColor: "divider",
+												borderRadius: 2,
+												p: 1.5,
+											}}
+										>
+											<Typography variant="caption" color="text.secondary">
+												{a.key}
+											</Typography>
+											<Typography variant="body2" sx={{ fontWeight: 600 }}>
+												{String(a.value)}
+											</Typography>
+										</Box>
+									))}
+								</Stack>
+							)}
+						</Box>
+
+						<Divider />
+
+						{/* Evidence */}
+						<Box>
+							<Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 1 }}>
+								Evidence
+							</Typography>
+
+							{viewEvidence.length === 0 ? (
+								<Typography variant="body2" color="text.secondary">
+									No evidence URLs provided.
+								</Typography>
+							) : (
+								<Stack spacing={2}>
+									{viewEvidence.map((url) => (
+										<Box
+											key={url}
+											sx={{
+												border: "1px solid",
+												borderColor: "divider",
+												borderRadius: 2,
+												overflow: "hidden",
+											}}
+										>
+											{/* Image preview if likely an image */}
+											{isLikelyImageUrl(url) ? (
+												<Box
+													component="img"
+													src={url}
+													alt="Evidence"
+													sx={{
+														width: "100%",
+														maxHeight: 360,
+														objectFit: "cover",
+														display: "block",
+														bgcolor: "action.hover",
+													}}
+													onError={(e) => {
+														// if image fails, hide it (fallback to link below)
+														e.currentTarget.style.display = "none";
+													}}
+												/>
+											) : null}
+
+											<Box sx={{ p: 1.5 }}>
+												<Link
+													href={url}
+													target="_blank"
+													rel="noreferrer"
+													variant="body2"
+													sx={{ wordBreak: "break-all" }}
+												>
+													{url}
+												</Link>
+											</Box>
+										</Box>
+									))}
+								</Stack>
+							)}
+						</Box>
+					</Stack>
+				</DialogContent>
+				<DialogActions>
+					<Button onClick={closeView} sx={{ textTransform: "none" }}>
+						Close
+					</Button>
+				</DialogActions>
+			</Dialog>
 
 			{/* Reject dialog */}
 			<Dialog open={rejectOpen} onClose={closeReject} fullWidth maxWidth="sm">

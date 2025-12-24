@@ -37,8 +37,6 @@ function StatChip({ label, value, unit }) {
 function MissionImpactPanel({
 	estImpact,
 	error,
-	completing,
-	onComplete,
 	onViewImpact,
 }) {
 	return (
@@ -93,20 +91,6 @@ function MissionImpactPanel({
 					)}
 
 					<Stack direction="column" spacing={1.5}>
-						<Button
-							variant="contained"
-							fullWidth
-							sx={{
-								textTransform: "none",
-								bgcolor: "#166534",
-								"&:hover": { bgcolor: "#14532d" },
-							}}
-							onClick={onComplete}
-							disabled={completing}
-						>
-							{completing ? "Marking as completed..." : "Mark as completed"}
-						</Button>
-
 						<Button
 							variant="text"
 							fullWidth

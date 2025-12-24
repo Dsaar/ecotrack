@@ -37,7 +37,7 @@ function MissionDescriptionCard({ mission }) {
 		<Card
 			onClick={handleCardClick}
 			sx={{
-				borderRadius: 4,
+				borderRadius: 2,
 				cursor: "pointer",
 				"&:hover": { boxShadow: 4 },
 			}}
