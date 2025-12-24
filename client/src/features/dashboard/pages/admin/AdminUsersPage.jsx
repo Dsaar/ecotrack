@@ -117,7 +117,7 @@ export default function AdminUsersPage() {
 									<TableCell><b>Email</b></TableCell>
 									<TableCell><b>Phone</b></TableCell>
 									<TableCell><b>Admin</b></TableCell>
-									<TableCell align="right"><b>Actions</b></TableCell>
+									<TableCell align="right"><b>Delete User</b></TableCell>
 								</TableRow>
 							</TableHead>
 
