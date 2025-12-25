@@ -1,6 +1,7 @@
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import User from "../models/Users.js";
+import { sendWelcomeEmail } from "../service/mailService.js";
 import {
 	JWT_SECRET,
 	JWT_EXPIRES_IN,
@@ -82,6 +83,14 @@ export const register = async (req, res, next) => {
 				submissions: [],
 			},
 		});
+
+		sendWelcomeEmail({
+			to: user.email,
+			firstName: user?.name?.first,
+		})
+			.then(() => console.log("[MAIL] Welcome email sent to:", user.email))
+			.catch((err) => console.error("[MAIL] Welcome email failed:", err));
+
 
 		// Automatically log in after register
 		return sendAuth(res, user, 201);
