@@ -2,6 +2,11 @@ import Submission from "../../models/Submission.js";
 import Mission from "../../models/Missions.js";
 import User from "../../models/Users.js";
 import Checkin from "../../models/Checkin.js";
+import {
+	sendSubmissionApprovedEmail,
+	sendSubmissionRejectedEmail,
+} from "../../service/mailService.js";
+
 
 export const listAdminSubmissions = async (req, res) => {
 	try {
@@ -51,6 +56,23 @@ export const approveSubmission = async (req, res) => {
 			impact: mission.estImpact || { co2Kg: 0, waterL: 0, wasteKg: 0 },
 		});
 
+		// email user (fire-and-forget)
+		try {
+			const u = await User.findById(sub.userId).select("email name");
+			if (u?.email) {
+				sendSubmissionApprovedEmail({
+					to: u.email,
+					firstName: u?.name?.first,
+					missionTitle: mission?.title,
+					pointsAwarded: sub.pointsAwarded,
+					dashboardUrl: `${process.env.APP_BASE_URL}/dashboard/activity`,
+				}).catch((err) => console.error("[MAIL] approval email failed:", err));
+			}
+		} catch (err) {
+			console.error("[MAIL] approval email lookup failed:", err);
+		}
+
+
 		return res.json({ message: "Approved", pointsAwarded: sub.pointsAwarded });
 	} catch (e) {
 		console.error("[approveSubmission]", e);
@@ -71,6 +93,23 @@ export const rejectSubmission = async (req, res) => {
 		sub.reviewedAt = new Date();
 		sub.rejectionReason = reason || "";
 		await sub.save();
+
+		// email user (fire-and-forget)
+		try {
+			const u = await User.findById(sub.userId).select("email name");
+			const mission = await Mission.findById(sub.missionId).select("title");
+			if (u?.email) {
+				sendSubmissionRejectedEmail({
+					to: u.email,
+					firstName: u?.name?.first,
+					missionTitle: mission?.title,
+					reason: sub.rejectionReason || "",
+					dashboardUrl: `${process.env.APP_BASE_URL}/dashboard/activity`,
+				}).catch((err) => console.error("[MAIL] rejection email failed:", err));
+			}
+		} catch (err) {
+			console.error("[MAIL] rejection email lookup failed:", err);
+		}
 
 		return res.json({ message: "Rejected" });
 	} catch (e) {

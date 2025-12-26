@@ -123,3 +123,208 @@ Open your dashboard: ${APP_BASE_URL}/dashboard
     ],
   });
 }
+
+// src/services/mailService.js
+
+export async function sendSubmissionPendingAdminEmail({
+  to,
+  userEmail,
+  userName,
+  missionTitle,
+  submissionId,
+  dashboardUrl,
+}) {
+  const subject = `New mission submission pending review`;
+  const html = `
+  <div style="font-family:Arial,sans-serif;background:#f6f7f9;padding:24px">
+    <div style="max-width:640px;margin:0 auto;background:#ffffff;border-radius:16px;border:1px solid #e5e7eb">
+      <div style="padding:20px;border-bottom:1px solid #e5e7eb;text-align:center">
+        <img src="cid:ecotracklogo" alt="EcoTrack" width="160" style="max-width:160px;width:100%;height:auto;display:block;margin:0 auto;" />
+      </div>
+
+      <div style="padding:24px">
+        <h2 style="margin:0 0 12px;color:#111827">Submission pending review</h2>
+
+        <p style="color:#374151;line-height:1.5;margin:0 0 14px">
+          A new submission was created and is waiting for moderation.
+        </p>
+
+        <div style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:12px;padding:12px;color:#111827">
+          <div><strong>Mission:</strong> ${missionTitle || "—"}</div>
+          <div><strong>User:</strong> ${userName || "—"} (${userEmail || "—"})</div>
+          <div><strong>Submission ID:</strong> ${submissionId || "—"}</div>
+        </div>
+
+        <a
+          href="${dashboardUrl}"
+          style="display:inline-block;margin-top:16px;padding:10px 16px;background:#166534;color:white;text-decoration:none;border-radius:10px;font-weight:600"
+        >
+          Open moderation
+        </a>
+      </div>
+
+      <div style="padding:16px;background:#f9fafb;font-size:12px;color:#6b7280">
+        © ${new Date().getFullYear()} EcoTrack
+      </div>
+    </div>
+  </div>
+  `;
+
+  return transporter.sendMail({
+    from: MAIL_FROM,
+    to,
+    subject,
+    text: `New submission pending review
+Mission: ${missionTitle || "-"}
+User: ${userName || "-"} (${userEmail || "-"})
+Submission ID: ${submissionId || "-"}
+Moderation: ${dashboardUrl}
+`,
+    html,
+    attachments: [
+      {
+        filename: "ecotrack-logo.png",
+        path: logoPath,
+        cid: "ecotracklogo",
+      },
+    ],
+  });
+}
+
+export async function sendSubmissionApprovedEmail({
+  to,
+  firstName,
+  missionTitle,
+  pointsAwarded,
+  dashboardUrl,
+}) {
+  const subject = `✅ Submission approved${missionTitle ? ` — ${missionTitle}` : ""}`;
+
+  const html = `
+  <div style="font-family:Arial,sans-serif;background:#f6f7f9;padding:24px">
+    <div style="max-width:640px;margin:0 auto;background:#ffffff;border-radius:16px;border:1px solid #e5e7eb">
+      <div style="padding:20px;border-bottom:1px solid #e5e7eb;text-align:center">
+        <img src="cid:ecotracklogo" alt="EcoTrack" width="160" style="max-width:160px;width:100%;height:auto;display:block;margin:0 auto;" />
+      </div>
+
+      <div style="padding:24px">
+        <h2 style="margin:0 0 12px;color:#111827">
+          Nice work${firstName ? `, ${firstName}` : ""}! 🌱
+        </h2>
+
+        <p style="color:#374151;line-height:1.5;margin:0 0 14px">
+          Your mission submission was <strong>approved</strong>.
+        </p>
+
+        <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:12px;padding:12px;color:#166534">
+          <div><strong>Mission:</strong> ${missionTitle || "—"}</div>
+          <div><strong>Points awarded:</strong> ${Number(pointsAwarded) || 0}</div>
+        </div>
+
+        <a
+          href="${dashboardUrl}"
+          style="display:inline-block;margin-top:16px;padding:10px 16px;background:#166534;color:white;text-decoration:none;border-radius:10px;font-weight:600"
+        >
+          View my dashboard
+        </a>
+      </div>
+
+      <div style="padding:16px;background:#f9fafb;font-size:12px;color:#6b7280">
+        © ${new Date().getFullYear()} EcoTrack
+      </div>
+    </div>
+  </div>
+  `;
+
+  return transporter.sendMail({
+    from: MAIL_FROM,
+    to,
+    subject,
+    text: `Your submission was approved!
+Mission: ${missionTitle || "-"}
+Points awarded: ${Number(pointsAwarded) || 0}
+Dashboard: ${dashboardUrl}
+`,
+    html,
+    attachments: [
+      {
+        filename: "ecotrack-logo.png",
+        path: logoPath,
+        cid: "ecotracklogo",
+      },
+    ],
+  });
+}
+
+export async function sendSubmissionRejectedEmail({
+  to,
+  firstName,
+  missionTitle,
+  reason,
+  dashboardUrl,
+}) {
+  const subject = `❌ Submission rejected${missionTitle ? ` — ${missionTitle}` : ""}`;
+
+  const safeReason =
+    typeof reason === "string" && reason.trim()
+      ? reason.trim()
+      : null;
+
+  const html = `
+  <div style="font-family:Arial,sans-serif;background:#f6f7f9;padding:24px">
+    <div style="max-width:640px;margin:0 auto;background:#ffffff;border-radius:16px;border:1px solid #e5e7eb">
+      <div style="padding:20px;border-bottom:1px solid #e5e7eb;text-align:center">
+        <img src="cid:ecotracklogo" alt="EcoTrack" width="160" style="max-width:160px;width:100%;height:auto;display:block;margin:0 auto;" />
+      </div>
+
+      <div style="padding:24px">
+        <h2 style="margin:0 0 12px;color:#111827">
+          Thanks${firstName ? `, ${firstName}` : ""} — needs a quick fix ✍️
+        </h2>
+
+        <p style="color:#374151;line-height:1.5;margin:0 0 14px">
+          Your mission submission was <strong>rejected</strong>.
+        </p>
+
+        <div style="background:#fef2f2;border:1px solid #fecaca;border-radius:12px;padding:12px;color:#991b1b">
+          <div><strong>Mission:</strong> ${missionTitle || "—"}</div>
+          ${safeReason
+      ? `<div style="margin-top:8px"><strong>Reason:</strong><br/>${safeReason}</div>`
+      : `<div style="margin-top:8px"><strong>Reason:</strong> (not provided)</div>`
+    }
+        </div>
+
+        <a
+          href="${dashboardUrl}"
+          style="display:inline-block;margin-top:16px;padding:10px 16px;background:#166534;color:white;text-decoration:none;border-radius:10px;font-weight:600"
+        >
+          Go to my dashboard
+        </a>
+      </div>
+
+      <div style="padding:16px;background:#f9fafb;font-size:12px;color:#6b7280">
+        © ${new Date().getFullYear()} EcoTrack
+      </div>
+    </div>
+  </div>
+  `;
+
+  return transporter.sendMail({
+    from: MAIL_FROM,
+    to,
+    subject,
+    text: `Your submission was rejected.
+Mission: ${missionTitle || "-"}
+Reason: ${safeReason || "(not provided)"}
+Dashboard: ${dashboardUrl}
+`,
+    html,
+    attachments: [
+      {
+        filename: "ecotrack-logo.png",
+        path: logoPath,
+        cid: "ecotracklogo",
+      },
+    ],
+  });
+}
