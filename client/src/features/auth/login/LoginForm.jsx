@@ -1,13 +1,15 @@
 // src/features/auth/login/LoginForm.jsx
 import { useState } from "react";
 import { Box, Button, TextField, Stack, Typography } from "@mui/material";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import PasswordField from "../../../shared/components/PasswordField.jsx";
 import { useUser } from "../../../app/providers/UserProvider.jsx";
 
 import useForm from "../../../shared/hooks/useForm.js";
 import loginSchema from "../../../shared/models/loginSchema.js";
 import { useSnackbar } from "../../../app/providers/SnackBarProvider.jsx";
+import { Link as RouterLink } from "react-router-dom";
+
 
 const initialValues = {
 	email: "",
@@ -110,6 +112,14 @@ function LoginForm({ onSubmitSuccess }) {
 				>
 					{submitting ? "Logging in..." : "Log in"}
 				</Button>
+				<Link
+					component={RouterLink}
+					to="/forgot-password"
+					variant="body2"
+					sx={{ alignSelf: "flex-end" }}
+				>
+					Forgot password?
+				</Link>
 			</Stack>
 		</Box>
 	);

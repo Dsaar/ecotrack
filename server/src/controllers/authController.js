@@ -2,6 +2,7 @@ import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import User from "../models/Users.js";
 import { sendWelcomeEmail } from "../service/mailService.js";
+import { sendPasswordResetEmail } from "../service/mailService.js"; 
 import {
 	JWT_SECRET,
 	JWT_EXPIRES_IN,
@@ -9,6 +10,7 @@ import {
 	isProd,
 	COOKIE_MAX_AGE_MS,
 } from "../config/authConfig.js";
+import crypto from "crypto";
 
 const cookieOpts = {
 	httpOnly: true,
@@ -165,5 +167,80 @@ export const logout = async (_req, res) => {
 	} catch (err) {
 		console.error("[authController.logout] error:", err?.message);
 		return res.status(500).json({ message: "Failed to logout" });
+	}
+};
+
+
+/* ============================================================
+   Forgot password
+   ============================================================ */
+export const forgotPassword = async (req, res) => {
+	try {
+		const email = String(req.body?.email || "").trim().toLowerCase();
+		if (!email) return res.status(200).json({ message: "If the email exists, a reset link was sent." });
+
+		const user = await User.findOne({ email });
+		if (!user) {
+			return res.status(200).json({ message: "If the email exists, a reset link was sent." });
+		}
+
+		// create raw token
+		const rawToken = crypto.randomBytes(32).toString("hex");
+
+		// store hash (NOT raw)
+		const tokenHash = crypto.createHash("sha256").update(rawToken).digest("hex");
+
+		user.resetPasswordTokenHash = tokenHash;
+		user.resetPasswordExpiresAt = new Date(Date.now() + 30 * 60 * 1000); // 30 min
+		user.resetPasswordUsedAt = null;
+		await user.save({ validateBeforeSave: false });
+
+		const resetUrl = `${process.env.APP_BASE_URL}/reset-password?token=${rawToken}&email=${encodeURIComponent(email)}`;
+
+		// fire-and-forget email
+		sendPasswordResetEmail({
+			to: user.email,
+			firstName: user?.name?.first,
+			resetUrl,
+		}).catch((err) => console.error("[MAIL] reset email failed:", err));
+
+		return res.status(200).json({ message: "If the email exists, a reset link was sent." });
+	} catch (err) {
+		console.error("[authController.forgotPassword]", err);
+		return res.status(200).json({ message: "If the email exists, a reset link was sent." });
+	}
+};
+
+
+export const resetPassword = async (req, res) => {
+	try {
+		const token = String(req.body?.token || "").trim();
+		const newPassword = String(req.body?.password || "");
+
+		if (!token || !newPassword) {
+			return res.status(400).json({ message: "Token and password are required." });
+		}
+
+		const tokenHash = crypto.createHash("sha256").update(token).digest("hex");
+
+		const user = await User.findOne({
+			resetPasswordTokenHash: tokenHash,
+			resetPasswordUsedAt: null,
+			resetPasswordExpiresAt: { $gt: new Date() },
+		}).select("+passwordHash");
+
+		if (!user) return res.status(400).json({ message: "Invalid or expired reset link." });
+
+		user.passwordHash = await bcrypt.hash(newPassword, 12);
+		user.resetPasswordUsedAt = new Date();
+		user.resetPasswordTokenHash = null;
+		user.resetPasswordExpiresAt = null;
+
+		await user.save({ validateBeforeSave: false });
+
+		return res.json({ message: "Password updated successfully." });
+	} catch (err) {
+		console.error("[authController.resetPassword]", err);
+		return res.status(500).json({ message: "Failed to reset password." });
 	}
 };

@@ -28,6 +28,21 @@ const userSchema = new Schema(
 			select: false,
 		},
 
+		resetPasswordTokenHash: {
+			type: String,
+			default: null,
+			select: false, // never expose token hash
+		},
+		resetPasswordExpiresAt: {
+			type: Date,
+			default: null,
+		},
+		resetPasswordUsedAt: {
+			type: Date,
+			default: null,
+		},
+
+
 		phone: {
 			type: String,
 			trim: true,

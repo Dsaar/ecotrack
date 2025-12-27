@@ -328,3 +328,50 @@ Dashboard: ${dashboardUrl}
     ],
   });
 }
+
+
+export async function sendPasswordResetEmail({ to, firstName, resetUrl }) {
+  const html = `
+  <div style="font-family:Arial,sans-serif;background:#f6f7f9;padding:24px">
+    <div style="max-width:640px;margin:0 auto;background:#ffffff;border-radius:16px;border:1px solid #e5e7eb">
+      <div style="padding:20px;border-bottom:1px solid #e5e7eb;display:flex;align-items:center;gap:12px">
+      <img src="cid:ecotracklogo" alt="EcoTrack" width="160" style="max-width:160px;width:100%;height:auto;display:block;margin:0 auto;" />
+      </div>
+
+      <div style="padding:24px">
+        <h2 style="margin:0 0 12px">Reset your password</h2>
+        <p style="color:#374151;line-height:1.5">
+          Hi${firstName ? ` ${firstName}` : ""}, we received a request to reset your password.
+        </p>
+
+        <a href="${resetUrl}"
+           style="display:inline-block;margin-top:16px;padding:10px 16px;background:#166534;color:white;text-decoration:none;border-radius:10px;font-weight:600">
+          Reset password
+        </a>
+
+        <p style="margin-top:16px;color:#6b7280;font-size:12px">
+          This link expires in 30 minutes. If you didn’t request this, you can ignore this email.
+        </p>
+      </div>
+
+      <div style="padding:16px;background:#f9fafb;font-size:12px;color:#6b7280">
+        © ${new Date().getFullYear()} EcoTrack
+      </div>
+    </div>
+  </div>`;
+
+  return transporter.sendMail({
+    from: MAIL_FROM,
+    to,
+    subject: "Reset your EcoTrack password",
+    text: `Reset your password using this link (expires in 30 minutes): ${resetUrl}`,
+    html,
+    attachments: [
+      {
+        filename: "ecotrack-logo.png",
+        path: logoPath,
+        cid: "ecotracklogo",
+      },
+    ],
+  });
+}

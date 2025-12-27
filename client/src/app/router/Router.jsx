@@ -23,6 +23,8 @@ import AdminSubmissionsPage from "../../features/dashboard/pages/admin/AdminSubm
 import AdminMissionEditPage from "../../features/dashboard/pages/admin/AdminMissionEditPage.jsx";
 import AdminMissionCreatePage from "../../features/dashboard/pages/admin/AdminMissionCreatePage.jsx";
 import AdminUsersPage from "../../features/dashboard/pages/admin/AdminUsersPage.jsx";
+import ForgotPasswordPage from "../../features/auth/pages/ForgotPasswordPage.jsx";
+import ResetPasswordPage from "../../features/auth/pages/ResetPasswordPage.jsx";
 
 
 
@@ -119,6 +121,25 @@ function Router() {
 					</Layout>
 				}
 			/>
+
+			<Route
+				path="/forgot-password"
+				element={
+					<Layout>
+						<ForgotPasswordPage />
+					</Layout>
+				}
+			/>
+
+			<Route
+				path="/reset-password"
+				element={
+					<Layout>
+						<ResetPasswordPage/>
+					</Layout>
+				}
+			/>
+
 
 			{/* Dashboard (all protected via ProtectedRoute) */}
 			<Route
