@@ -25,6 +25,7 @@ import AdminMissionCreatePage from "../../features/dashboard/pages/admin/AdminMi
 import AdminUsersPage from "../../features/dashboard/pages/admin/AdminUsersPage.jsx";
 import ForgotPasswordPage from "../../features/auth/pages/ForgotPasswordPage.jsx";
 import ResetPasswordPage from "../../features/auth/pages/ResetPasswordPage.jsx";
+import ChatPage from "../../features/dashboard/pages/ChatPage.jsx";
 
 
 
@@ -177,6 +178,11 @@ function Router() {
 				path="/dashboard/favorites"
 				element={renderDashboardPage(DashboardFavoritesPage)}
 			/>
+			<Route
+				path="/dashboard/chat"
+				element={renderDashboardPage(ChatPage)}
+			/>
+
 			<Route
 				path="/dashboard/admin/submissions"
 				element={

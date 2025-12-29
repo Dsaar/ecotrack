@@ -16,6 +16,8 @@ import GroupsIcon from "@mui/icons-material/Groups";
 import FavoriteIcon from "@mui/icons-material/Favorite";
 import GavelIcon from "@mui/icons-material/Gavel";
 import PeopleIcon from "@mui/icons-material/People";
+import ChatIcon from "@mui/icons-material/Chat";
+
 
 
 import { useNavigate, useLocation } from "react-router-dom";
@@ -33,6 +35,7 @@ function Sidebar() {
 		{ label: "Missions", icon: <AssignmentIcon />, path: "/dashboard/missions" },
 		{ label: "Favorites", icon: <FavoriteIcon />, path: "/dashboard/favorites" },
 		{ label: "Activity", icon: <ShowChartIcon />, path: "/dashboard/activity" },
+		{ label: "Chat", icon: <ChatIcon />, path: "/dashboard/chat" },
 		{ label: "Profile", icon: <PersonIcon />, path: "/dashboard/profile" },
 	];
 
