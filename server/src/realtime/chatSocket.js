@@ -3,7 +3,7 @@ import jwt from "jsonwebtoken";
 import User from "../models/Users.js";
 import ChatMessage from "../models/ChatMessage.js";
 
-const onlineUsers = new Map(); // userId -> { socketId, name, email, isAdmin, lastSeen }
+const onlineUsers = new Map(); // userId -> { socketId, id, name, email, isAdmin, lastSeen }
 
 function safeUser(u) {
 	return {
@@ -11,22 +11,21 @@ function safeUser(u) {
 		name: u.name,
 		email: u.email,
 		isAdmin: !!u.isAdmin,
+		avatarUrl: u.avatarUrl?.url || null,
+
 	};
 }
 
-// ✅ NEW: central helper so we always build the same online list
 function onlineList() {
 	return Array.from(onlineUsers.values());
 }
 
 function broadcastOnline(io) {
-	// ✅ UPDATED: use the helper
 	io.emit("presence:online", onlineList());
 }
 
 export function registerChatSockets(io) {
 	io.on("connection", async (socket) => {
-		// client should pass token in socket.handshake.auth.token
 		const token = socket.handshake?.auth?.token;
 
 		if (!token) {
@@ -39,7 +38,7 @@ export function registerChatSockets(io) {
 			const payload = jwt.verify(token, process.env.JWT_SECRET);
 			const userId = payload.sub;
 
-			const user = await User.findById(userId).select("name email isAdmin");
+			const user = await User.findById(userId).select("name email isAdmin avatarUrl");
 			if (!user) {
 				socket.emit("chat:error", { message: "User not found" });
 				socket.disconnect(true);
@@ -56,18 +55,18 @@ export function registerChatSockets(io) {
 				lastSeen: new Date().toISOString(),
 			});
 
-			// ✅ NEW: send online list to THIS socket immediately
+			// send online list to THIS socket immediately
 			socket.emit("presence:online", onlineList());
 
-			// ✅ existing: broadcast to everyone
+			// broadcast to everyone
 			broadcastOnline(io);
 
-			// ✅ NEW: allow client to request online list after listeners are attached
+			// allow client to request online list any time
 			socket.on("presence:sync", () => {
 				socket.emit("presence:online", onlineList());
 			});
 
-			// user wants message history with someone
+			// history
 			socket.on("chat:history", async ({ withUserId, limit = 30 }) => {
 				if (!withUserId) return;
 
@@ -86,12 +85,11 @@ export function registerChatSockets(io) {
 				socket.emit("chat:history", msgs.reverse());
 			});
 
-			// send message to another user
+			// send message
 			socket.on("chat:send", async ({ toUserId, content }) => {
 				const fromUserId = socket.data.userId;
 				if (!toUserId || !content?.trim()) return;
 
-				// persist
 				const doc = await ChatMessage.create({
 					senderId: fromUserId,
 					receiverId: toUserId,
@@ -105,6 +103,28 @@ export function registerChatSockets(io) {
 				const target = onlineUsers.get(String(toUserId));
 				if (target?.socketId) {
 					io.to(target.socketId).emit("chat:message", doc);
+				}
+			});
+
+			// ✅ seen handler MUST be inside connection
+			socket.on("chat:seen", async ({ withUserId }) => {
+				const me = socket.data.userId;
+				if (!withUserId) return;
+
+				try {
+					// Use "seenAt: null" because your schema uses default null
+					await ChatMessage.updateMany(
+						{ senderId: withUserId, receiverId: me, seenAt: null },
+						{ $set: { seenAt: new Date() } }
+					);
+
+					// notify other side if online
+					const other = onlineUsers.get(String(withUserId));
+					if (other?.socketId) {
+						io.to(other.socketId).emit("chat:seen", { byUserId: me });
+					}
+				} catch (e) {
+					console.error("[chat:seen] failed", e);
 				}
 			});
 

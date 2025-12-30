@@ -1,6 +1,6 @@
 // src/components/common/Logo.jsx
 import { Box } from "@mui/material";
-import logo from "../../assets/ecotrack-logo.svg";
+import logo from "../../assets/ecotrack-logo-transparent.png";
 
 function Logo({ height = 32, ...props }) {
 	return (
