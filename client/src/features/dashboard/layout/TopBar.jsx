@@ -45,6 +45,11 @@ function TopBar() {
 		return "EcoTrack User";
 	})();
 
+	const avatarSrc =
+		user?.avatarUrl?.url ||
+		(typeof user?.avatarUrl === "string" ? user.avatarUrl : "") ||
+		"";
+
 	const [anchorEl, setAnchorEl] = useState(null);
 	const open = Boolean(anchorEl);
 
@@ -115,6 +120,9 @@ function TopBar() {
 			<Stack direction="row" spacing={2} alignItems="center">
 				<IconButton onClick={handleAvatarClick} size="small">
 					<Avatar
+						src={avatarSrc || undefined}
+						alt={displayName}
+						imgProps={{ referrerPolicy: "no-referrer" }}
 						sx={{
 							bgcolor: "#166534",
 							width: 36,
