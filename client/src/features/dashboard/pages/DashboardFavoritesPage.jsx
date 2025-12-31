@@ -1,12 +1,16 @@
 // src/features/missions/pages/DashboardFavoritesPage.jsx
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Box, Stack, Typography } from "@mui/material";
 import { getFavoriteMissions } from "../../../services/favoritesService.js";
 import MissionDescriptionCard from "../components/MissionDescriptionCard.jsx";
+import { useSearch } from "../../../app/providers/SearchProvider.jsx";
 
 function DashboardFavoritesPage() {
 	const [missions, setMissions] = useState([]);
 	const [loading, setLoading] = useState(true);
+
+	const { query, setQuery } = useSearch();
+	const q = (query || "").trim().toLowerCase();
 
 	useEffect(() => {
 		let cancelled = false;
@@ -51,6 +55,32 @@ function DashboardFavoritesPage() {
 		};
 	}, []);
 
+	// ✅ Optional: clear global search when leaving favorites
+	useEffect(() => {
+		return () => setQuery("");
+	}, [setQuery]);
+
+	// ✅ Filter favorites based on global query
+	const filteredMissions = useMemo(() => {
+		if (!q) return missions;
+
+		return missions.filter((m) => {
+			const title = (m.title || "").toLowerCase();
+			const summary = (m.summary || "").toLowerCase();
+			const category = (m.category || "").toLowerCase();
+			const difficulty = (m.difficulty || "").toLowerCase();
+			const tags = Array.isArray(m.tags) ? m.tags.join(" ").toLowerCase() : "";
+
+			return (
+				title.includes(q) ||
+				summary.includes(q) ||
+				category.includes(q) ||
+				difficulty.includes(q) ||
+				tags.includes(q)
+			);
+		});
+	}, [missions, q]);
+
 	return (
 		<Box sx={{ p: { xs: 2, md: 3 } }}>
 			<Typography variant="h4" sx={{ fontWeight: 600, mb: 1 }}>
@@ -64,13 +94,15 @@ function DashboardFavoritesPage() {
 				<Typography variant="body2" color="text.secondary">
 					Loading your saved missions...
 				</Typography>
-			) : missions.length === 0 ? (
+			) : filteredMissions.length === 0 ? (
 				<Typography variant="body2" color="text.secondary">
-					You don&apos;t have any saved missions yet. Tap the star icon on a mission to save it here.
+					{q
+						? "No saved missions match your search."
+						: "You don&apos;t have any saved missions yet. Tap the star icon on a mission to save it here."}
 				</Typography>
 			) : (
 				<Stack spacing={2}>
-					{missions.map((m) => (
+					{filteredMissions.map((m) => (
 						<MissionDescriptionCard key={m._id} mission={m} />
 					))}
 				</Stack>

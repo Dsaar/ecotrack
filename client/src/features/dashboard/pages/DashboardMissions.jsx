@@ -1,5 +1,5 @@
 // src/features/dashboard/pages/DashboardMissions.jsx
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useMemo, useState, useCallback } from "react";
 import {
 	Box,
 	Button,
@@ -25,6 +25,7 @@ import {
 
 import DashboardMissionsGrid from "../components/DashboardMissionsGrid.jsx";
 import AdminMissionEditDialog from "../components/AdminMissionsEditDialog.jsx";
+import { useSearch } from "../../../app/providers/SearchProvider.jsx";
 
 const CATEGORY_OPTIONS = [
 	"Home",
@@ -38,15 +39,16 @@ const CATEGORY_OPTIONS = [
 const DIFFICULTY_OPTIONS = ["Easy", "Medium", "Hard"];
 
 function DashboardMissions() {
-	const [missions, setMissions] = useState([]);
-	const [loading, setLoading] = useState(true);
-	const [error, setError] = useState("");
-
 	const navigate = useNavigate();
 	const { user } = useUser();
 	const { showSuccess, showError } = useSnackbar();
+	const { query, setQuery } = useSearch(); // ✅ hook INSIDE component
 
 	const isAdmin = !!user?.isAdmin;
+
+	const [missions, setMissions] = useState([]);
+	const [loading, setLoading] = useState(true);
+	const [error, setError] = useState("");
 
 	// --- Edit dialog state ---
 	const [editOpen, setEditOpen] = useState(false);
@@ -62,8 +64,13 @@ function DashboardMissions() {
 
 	// --- Delete dialog state ---
 	const [deleteOpen, setDeleteOpen] = useState(false);
-	const [deleteTarget, setDeleteTarget] = useState(null); // mission object
+	const [deleteTarget, setDeleteTarget] = useState(null);
 	const [deleting, setDeleting] = useState(false);
+
+	// ✅ cleanup search query when leaving the page
+	useEffect(() => {
+		return () => setQuery("");
+	}, [setQuery]);
 
 	const openDelete = (mission) => {
 		setDeleteTarget(mission);
@@ -76,14 +83,13 @@ function DashboardMissions() {
 		setDeleteTarget(null);
 	};
 
-	// ✅ FIX: define it here (component scope)
 	const handleConfirmDelete = async () => {
 		if (!deleteTarget?._id) return;
 
 		const id = deleteTarget._id;
+		const prev = missions;
 
 		// optimistic remove
-		const prev = missions;
 		setMissions((cur) => cur.filter((m) => m._id !== id));
 
 		try {
@@ -93,12 +99,8 @@ function DashboardMissions() {
 			closeDelete();
 		} catch (err) {
 			console.error("Delete mission failed:", err);
-
-			// rollback
-			setMissions(prev);
-
-			const msg = err?.response?.data?.message || "Failed to delete mission.";
-			showError?.(msg);
+			setMissions(prev); // rollback
+			showError?.(err?.response?.data?.message || "Failed to delete mission.");
 		} finally {
 			setDeleting(false);
 		}
@@ -115,7 +117,8 @@ function DashboardMissions() {
 		} catch (err) {
 			console.error("Failed to load dashboard missions:", err);
 			const msg =
-				err?.response?.data?.message || "Could not load missions. Please try again.";
+				err?.response?.data?.message ||
+				"Could not load missions. Please try again.";
 			setError(msg);
 			showError?.(msg);
 		} finally {
@@ -124,53 +127,31 @@ function DashboardMissions() {
 	}, [isAdmin, showError]);
 
 	useEffect(() => {
-		let cancelled = false;
-
-		(async () => {
-			try {
-				setLoading(true);
-				setError("");
-
-				const data = isAdmin ? await getMissionsAdmin() : await getMissions();
-				if (!cancelled) {
-					const items = Array.isArray(data) ? data : data?.missions || [];
-					setMissions(items);
-				}
-			} catch (err) {
-				console.error("Failed to load dashboard missions:", err);
-				if (!cancelled) {
-					const msg =
-						err?.response?.data?.message || "Could not load missions. Please try again.";
-					setError(msg);
-					showError?.(msg);
-				}
-			} finally {
-				if (!cancelled) setLoading(false);
-			}
-		})();
-
-		return () => {
-			cancelled = true;
-		};
-	}, [isAdmin, showError]);
+		loadMissions();
+	}, [loadMissions]);
 
 	const handleTogglePublish = async (mission) => {
 		try {
 			const next = !mission.isPublished;
 
+			// optimistic UI
 			setMissions((prev) =>
-				prev.map((m) => (m._id === mission._id ? { ...m, isPublished: next } : m))
+				prev.map((m) =>
+					m._id === mission._id ? { ...m, isPublished: next } : m
+				)
 			);
 
 			await patchMission(mission._id, { isPublished: next });
-
 			showSuccess?.(next ? "Mission published." : "Mission unpublished.");
 		} catch (err) {
 			console.error("Toggle publish failed:", err);
 
+			// rollback
 			setMissions((prev) =>
 				prev.map((m) =>
-					m._id === mission._id ? { ...m, isPublished: mission.isPublished } : m
+					m._id === mission._id
+						? { ...m, isPublished: mission.isPublished }
+						: m
 				)
 			);
 
@@ -227,8 +208,7 @@ function DashboardMissions() {
 			setMissions((prev) => prev.map((m) => (m._id === editId ? updated : m)));
 
 			showSuccess?.("Mission updated.");
-			setEditOpen(false);
-			setEditId(null);
+			closeEdit();
 		} catch (err) {
 			console.error("[DashboardMissions] edit save failed", err);
 			showError?.(err?.response?.data?.message || "Failed to update mission.");
@@ -236,6 +216,29 @@ function DashboardMissions() {
 			setSaving(false);
 		}
 	};
+
+	const q = (query || "").trim().toLowerCase();
+
+	const filteredMissions = useMemo(() => {
+		if (!q) return missions;
+
+		return missions.filter((m) => {
+			const title = (m.title || "").toLowerCase();
+			const summary = (m.summary || "").toLowerCase();
+			const category = (m.category || "").toLowerCase();
+			const difficulty = (m.difficulty || "").toLowerCase();
+
+			const tags = Array.isArray(m.tags) ? m.tags.join(" ").toLowerCase() : "";
+
+			return (
+				title.includes(q) ||
+				summary.includes(q) ||
+				category.includes(q) ||
+				difficulty.includes(q) ||
+				tags.includes(q)
+			);
+		});
+	}, [missions, q]);
 
 	if (loading) {
 		return (
@@ -249,7 +252,12 @@ function DashboardMissions() {
 
 	return (
 		<Box sx={{ p: { xs: 2, md: 3 } }}>
-			<Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 1 }}>
+			<Stack
+				direction="row"
+				alignItems="center"
+				justifyContent="space-between"
+				sx={{ mb: 1 }}
+			>
 				<Typography variant="h4" sx={{ fontWeight: 600 }}>
 					{isAdmin ? "Missions (Admin)" : "My missions"}
 				</Typography>
@@ -258,7 +266,11 @@ function DashboardMissions() {
 					<Button
 						variant="contained"
 						onClick={() => navigate("/dashboard/admin/missions/new")}
-						sx={{ textTransform: "none", bgcolor: "#166534", "&:hover": { bgcolor: "#14532d" } }}
+						sx={{
+							textTransform: "none",
+							bgcolor: "#166534",
+							"&:hover": { bgcolor: "#14532d" },
+						}}
 					>
 						Create mission
 					</Button>
@@ -277,8 +289,9 @@ function DashboardMissions() {
 				</Typography>
 			)}
 
+			{/* ✅ IMPORTANT: use filteredMissions here */}
 			<DashboardMissionsGrid
-				missions={missions}
+				missions={filteredMissions}
 				isAdmin={isAdmin}
 				onOpenDetails={(id) => navigate(`/dashboard/missions/${id}`)}
 				onEdit={(mission) => openEdit(mission)}
@@ -297,16 +310,21 @@ function DashboardMissions() {
 				onSave={handleSaveEdit}
 			/>
 
-			{/* ✅ Delete confirmation dialog */}
+			{/* Delete confirmation dialog */}
 			<Dialog open={deleteOpen} onClose={closeDelete} fullWidth maxWidth="xs">
 				<DialogTitle>Delete mission?</DialogTitle>
 				<DialogContent>
 					<Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-						This will permanently delete <b>{deleteTarget?.title || "this mission"}</b>.
+						This will permanently delete{" "}
+						<b>{deleteTarget?.title || "this mission"}</b>.
 					</Typography>
 				</DialogContent>
 				<DialogActions>
-					<Button onClick={closeDelete} disabled={deleting} sx={{ textTransform: "none" }}>
+					<Button
+						onClick={closeDelete}
+						disabled={deleting}
+						sx={{ textTransform: "none" }}
+					>
 						Cancel
 					</Button>
 					<Button

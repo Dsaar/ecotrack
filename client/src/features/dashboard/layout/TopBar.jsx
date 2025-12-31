@@ -18,17 +18,20 @@ import { useUser } from "../../../app/providers/UserProvider.jsx";
 import { useThemeMode } from "../../../app/providers/CustomThemeProvider.jsx";
 import { useNavigate } from "react-router-dom";
 import { useState } from "react";
+import { useSearch } from "../../../app/providers/SearchProvider.jsx";
 
 function TopBar() {
 	const { user, logout } = useUser();
 	const { mode, toggleColorMode } = useThemeMode();
 	const navigate = useNavigate();
 
+	// ✅ Global search state (works on all dashboard pages)
+	const { query, setQuery } = useSearch();
+
 	// ✅ Robust display name builder
 	const displayName = (() => {
 		if (!user) return "EcoTrack User";
 
-		// If name is an object: { first, last }
 		if (user.name && typeof user.name === "object") {
 			const first = user.name.first || user.name.firstName;
 			const last = user.name.last || user.name.lastName;
@@ -36,30 +39,17 @@ function TopBar() {
 			if (full) return full;
 		}
 
-		// If name is already a string
 		if (typeof user.name === "string") return user.name;
-
-		// Fallback to email
 		if (user.email) return user.email;
 
 		return "EcoTrack User";
 	})();
 
-	const avatarSrc =
-		user?.avatarUrl?.url ||
-		(typeof user?.avatarUrl === "string" ? user.avatarUrl : "") ||
-		"";
-
 	const [anchorEl, setAnchorEl] = useState(null);
 	const open = Boolean(anchorEl);
 
-	const handleAvatarClick = (event) => {
-		setAnchorEl(event.currentTarget);
-	};
-
-	const handleCloseMenu = () => {
-		setAnchorEl(null);
-	};
+	const handleAvatarClick = (event) => setAnchorEl(event.currentTarget);
+	const handleCloseMenu = () => setAnchorEl(null);
 
 	const handleLogout = () => {
 		handleCloseMenu();
@@ -73,6 +63,12 @@ function TopBar() {
 	};
 
 	const isDark = mode === "dark";
+
+	// ✅ Use real avatar image when available (Image submodel support)
+	const avatarSrc =
+		user?.avatarUrl?.url ||
+		(typeof user?.avatarUrl === "string" ? user.avatarUrl : null) ||
+		undefined;
 
 	return (
 		<Box
@@ -97,11 +93,13 @@ function TopBar() {
 				</Typography>
 			</Box>
 
-			{/* Search */}
+			{/* ✅ Search (always enabled) */}
 			<TextField
 				size="small"
-				placeholder="Search missions"
+				placeholder="Search…"
 				sx={{ maxWidth: 260, display: { xs: "none", sm: "block" } }}
+				value={query}
+				onChange={(e) => setQuery(e.target.value)}
 				InputProps={{
 					startAdornment: (
 						<InputAdornment position="start">
@@ -120,9 +118,8 @@ function TopBar() {
 			<Stack direction="row" spacing={2} alignItems="center">
 				<IconButton onClick={handleAvatarClick} size="small">
 					<Avatar
-						src={avatarSrc || undefined}
+						src={avatarSrc}
 						alt={displayName}
-						imgProps={{ referrerPolicy: "no-referrer" }}
 						sx={{
 							bgcolor: "#166534",
 							width: 36,

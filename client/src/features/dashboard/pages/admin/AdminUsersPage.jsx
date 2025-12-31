@@ -1,14 +1,35 @@
 // src/features/dashboard/pages/admin/AdminUsersPage.jsx
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
-	Box, Card, CardContent, Typography, Stack,
-	Table, TableBody, TableCell, TableHead, TableRow,
-	Switch, IconButton, Tooltip, Dialog, DialogTitle, DialogContent, DialogActions, Button
+	Box,
+	Card,
+	CardContent,
+	Typography,
+	Table,
+	TableBody,
+	TableCell,
+	TableHead,
+	TableRow,
+	Switch,
+	IconButton,
+	Tooltip,
+	Dialog,
+	DialogTitle,
+	DialogContent,
+	DialogActions,
+	Button,
+	Stack,
 } from "@mui/material";
 import DeleteIcon from "@mui/icons-material/Delete";
+
 import { useSnackbar } from "../../../../app/providers/SnackBarProvider.jsx";
 import { useUser } from "../../../../app/providers/UserProvider.jsx";
-import { getAllUsersAdmin, setUserAdminStatus, deleteUserAdmin } from "../../../../services/userService.js";
+import { useSearch } from "../../../../app/providers/SearchProvider.jsx";
+import {
+	getAllUsersAdmin,
+	setUserAdminStatus,
+	deleteUserAdmin,
+} from "../../../../services/userService.js";
 
 export default function AdminUsersPage() {
 	const { user } = useUser();
@@ -16,12 +37,20 @@ export default function AdminUsersPage() {
 
 	const { showSuccess, showError } = useSnackbar();
 
+	// ✅ SearchProvider (TopBar search)
+	const { query, setQuery } = useSearch();
+
 	const [users, setUsers] = useState([]);
 	const [loading, setLoading] = useState(true);
 
 	const [deleteOpen, setDeleteOpen] = useState(false);
 	const [deleteTarget, setDeleteTarget] = useState(null);
 	const [deleting, setDeleting] = useState(false);
+
+	// ✅ Clear search when leaving this page
+	useEffect(() => {
+		return () => setQuery("");
+	}, [setQuery]);
 
 	useEffect(() => {
 		let cancelled = false;
@@ -38,14 +67,18 @@ export default function AdminUsersPage() {
 			}
 		})();
 
-		return () => { cancelled = true; };
+		return () => {
+			cancelled = true;
+		};
 	}, [showError]);
 
 	const handleToggleAdmin = async (u) => {
 		const next = !u.isAdmin;
 
 		// optimistic UI
-		setUsers((prev) => prev.map((x) => (x._id === u._id ? { ...x, isAdmin: next } : x)));
+		setUsers((prev) =>
+			prev.map((x) => (x._id === u._id ? { ...x, isAdmin: next } : x))
+		);
 
 		try {
 			const updated = await setUserAdminStatus(u._id, { isAdmin: next });
@@ -91,6 +124,34 @@ export default function AdminUsersPage() {
 		}
 	};
 
+	// ✅ Filtering (driven by TopBar search query)
+	const q = (query || "").trim().toLowerCase();
+
+	const filteredUsers = useMemo(() => {
+		if (!q) return users;
+
+		return users.filter((u) => {
+			const first = (u?.name?.first || "").toLowerCase();
+			const last = (u?.name?.last || "").toLowerCase();
+			const email = (u?.email || "").toLowerCase();
+			const phone = (u?.phone || "").toLowerCase();
+
+			// allow searching "admin"
+			const roleText = u?.isAdmin ? "admin" : "user";
+
+			const fullName = `${first} ${last}`.trim();
+
+			return (
+				fullName.includes(q) ||
+				first.includes(q) ||
+				last.includes(q) ||
+				email.includes(q) ||
+				phone.includes(q) ||
+				roleText.includes(q)
+			);
+		});
+	}, [users, q]);
+
 	if (!isAdmin) {
 		return (
 			<Box sx={{ p: { xs: 2, md: 3 } }}>
@@ -101,9 +162,21 @@ export default function AdminUsersPage() {
 
 	return (
 		<Box sx={{ p: { xs: 2, md: 3 }, maxWidth: 1100 }}>
-			<Typography variant="h4" sx={{ fontWeight: 700, mb: 2 }}>
-				Admin CRM
-			</Typography>
+			<Stack spacing={0.5} sx={{ mb: 2 }}>
+				<Typography variant="h4" sx={{ fontWeight: 700 }}>
+					Admin CRM
+				</Typography>
+				<Typography variant="body2" color="text.secondary">
+					Search by name, email, phone, or “admin”.
+				</Typography>
+
+				{!loading && (
+					<Typography variant="caption" color="text.secondary">
+						Showing {filteredUsers.length} of {users.length} users
+						{q ? ` for “${query}”` : ""}
+					</Typography>
+				)}
+			</Stack>
 
 			<Card sx={{ borderRadius: 4 }}>
 				<CardContent>
@@ -113,16 +186,26 @@ export default function AdminUsersPage() {
 						<Table>
 							<TableHead>
 								<TableRow>
-									<TableCell><b>Name</b></TableCell>
-									<TableCell><b>Email</b></TableCell>
-									<TableCell><b>Phone</b></TableCell>
-									<TableCell><b>Admin</b></TableCell>
-									<TableCell align="right"><b>Delete User</b></TableCell>
+									<TableCell>
+										<b>Name</b>
+									</TableCell>
+									<TableCell>
+										<b>Email</b>
+									</TableCell>
+									<TableCell>
+										<b>Phone</b>
+									</TableCell>
+									<TableCell>
+										<b>Admin</b>
+									</TableCell>
+									<TableCell align="right">
+										<b>Delete User</b>
+									</TableCell>
 								</TableRow>
 							</TableHead>
 
 							<TableBody>
-								{users.map((u) => (
+								{filteredUsers.map((u) => (
 									<TableRow key={u._id}>
 										<TableCell>
 											{u?.name?.first ? `${u.name.first} ${u.name.last || ""}` : "—"}
@@ -130,12 +213,18 @@ export default function AdminUsersPage() {
 										<TableCell>{u.email}</TableCell>
 										<TableCell>{u.phone || "—"}</TableCell>
 										<TableCell>
-											<Switch checked={!!u.isAdmin} onChange={() => handleToggleAdmin(u)} />
+											<Switch
+												checked={!!u.isAdmin}
+												onChange={() => handleToggleAdmin(u)}
+											/>
 										</TableCell>
 										<TableCell align="right">
 											<Tooltip title="Delete user">
 												<span>
-													<IconButton onClick={() => openDelete(u)} disabled={String(user?._id) === String(u._id)}>
+													<IconButton
+														onClick={() => openDelete(u)}
+														disabled={String(user?._id) === String(u._id)}
+													>
 														<DeleteIcon />
 													</IconButton>
 												</span>
@@ -144,10 +233,12 @@ export default function AdminUsersPage() {
 									</TableRow>
 								))}
 
-								{users.length === 0 && (
+								{filteredUsers.length === 0 && (
 									<TableRow>
 										<TableCell colSpan={5}>
-											<Typography color="text.secondary">No users found.</Typography>
+											<Typography color="text.secondary">
+												{q ? "No users match your search." : "No users found."}
+											</Typography>
 										</TableCell>
 									</TableRow>
 								)}
@@ -168,7 +259,13 @@ export default function AdminUsersPage() {
 					<Button onClick={closeDelete} disabled={deleting} sx={{ textTransform: "none" }}>
 						Cancel
 					</Button>
-					<Button onClick={confirmDelete} disabled={deleting} variant="contained" color="error" sx={{ textTransform: "none" }}>
+					<Button
+						onClick={confirmDelete}
+						disabled={deleting}
+						variant="contained"
+						color="error"
+						sx={{ textTransform: "none" }}
+					>
 						{deleting ? "Deleting..." : "Delete"}
 					</Button>
 				</DialogActions>

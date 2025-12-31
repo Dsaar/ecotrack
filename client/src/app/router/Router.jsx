@@ -2,7 +2,6 @@
 import { Routes, Route, Navigate } from "react-router-dom";
 import Layout from "../layout/Layout.jsx";
 import HomePage from "../../features/landing/pages/HomePage.jsx";
-import MissionsPage from "../../features/missions/pages/MissionsPage.jsx";
 import MissionDetailsPage from "../../features/missions/pages/MissionDetailsPage.jsx";
 import ErrorPage from "../../errors/ErrorPage.jsx";
 import DashboardLayout from "../../features/dashboard/layout/DashboardLayout.jsx";
@@ -26,26 +25,14 @@ import AdminUsersPage from "../../features/dashboard/pages/admin/AdminUsersPage.
 import ForgotPasswordPage from "../../features/auth/pages/ForgotPasswordPage.jsx";
 import ResetPasswordPage from "../../features/auth/pages/ResetPasswordPage.jsx";
 import ChatPage from "../../features/dashboard/pages/ChatPage.jsx";
+import { SearchProvider } from "../providers/SearchProvider.jsx";
 
-
-
-
-
-
-
-// ✅ Small helper to protect dashboard routes
+// ✅ Protect dashboard routes
 function ProtectedRoute({ children }) {
 	const { user, initializing } = useUser();
 
-	// While we’re checking the token (calling /auth/me), don’t redirect yet
-	if (initializing) {
-		return <LoadingSpinner fullScreen />;
-	}
-
-	// No user after initialization → go to login
-	if (!user) {
-		return <Navigate to="/login" replace />;
-	}
+	if (initializing) return <LoadingSpinner fullScreen />;
+	if (!user) return <Navigate to="/login" replace />;
 
 	return children;
 }
@@ -54,25 +41,28 @@ function AdminRoute({ children }) {
 	const { user, initializing } = useUser();
 
 	if (initializing) return <LoadingSpinner fullScreen />;
-
 	if (!user) return <Navigate to="/login" replace />;
-
 	if (!user.isAdmin) return <Navigate to="/dashboard" replace />;
 
 	return children;
 }
 
-
 function Router() {
-	// You *can* still read user here if you like, but protection is centralized
-	// const { user } = useUser();
-
-	const renderDashboardPage = (PageComponent) => (
-		<ProtectedRoute>
+	// ✅ Wrap *all* dashboard pages (user + admin) with SearchProvider
+	const wrapDashboard = (PageComponent) => (
+		<SearchProvider>
 			<DashboardLayout>
 				<PageComponent />
 			</DashboardLayout>
-		</ProtectedRoute>
+		</SearchProvider>
+	);
+
+	const renderDashboardPage = (PageComponent) => (
+		<ProtectedRoute>{wrapDashboard(PageComponent)}</ProtectedRoute>
+	);
+
+	const renderAdminDashboardPage = (PageComponent) => (
+		<AdminRoute>{wrapDashboard(PageComponent)}</AdminRoute>
 	);
 
 	return (
@@ -136,101 +126,39 @@ function Router() {
 				path="/reset-password"
 				element={
 					<Layout>
-						<ResetPasswordPage/>
+						<ResetPasswordPage />
 					</Layout>
 				}
 			/>
 
+			{/* Dashboard (protected) */}
+			<Route path="/dashboard" element={renderDashboardPage(DashboardHome)} />
+			<Route path="/dashboard/settings" element={renderDashboardPage(DashboardSettings)} />
+			<Route path="/dashboard/missions" element={renderDashboardPage(DashboardMissions)} />
+			<Route path="/dashboard/missions/:id" element={renderDashboardPage(DashboardMissionDetails)} />
+			<Route path="/dashboard/profile" element={renderDashboardPage(DashboardProfile)} />
+			<Route path="/dashboard/activity" element={renderDashboardPage(DashboardActivity)} />
+			<Route path="/dashboard/community" element={renderDashboardPage(DashboardCommunity)} />
+			<Route path="/dashboard/favorites" element={renderDashboardPage(DashboardFavoritesPage)} />
+			<Route path="/dashboard/chat" element={renderDashboardPage(ChatPage)} />
 
-			{/* Dashboard (all protected via ProtectedRoute) */}
-			<Route
-				path="/dashboard"
-				element={renderDashboardPage(DashboardHome)}
-			/>
-
-			<Route
-				path="/dashboard/settings"
-				element={renderDashboardPage(DashboardSettings)}
-			/>
-
-			<Route
-				path="/dashboard/missions"
-				element={renderDashboardPage(DashboardMissions)}
-			/>
-
-			<Route
-				path="/dashboard/missions/:id"
-				element={renderDashboardPage(DashboardMissionDetails)}
-			/>
-			<Route
-				path="/dashboard/profile"
-				element={renderDashboardPage(DashboardProfile)}
-			/>
-			<Route
-				path="/dashboard/activity"
-				element={renderDashboardPage(DashboardActivity)}
-			/>
-			<Route
-				path="/dashboard/community"
-				element={renderDashboardPage(DashboardCommunity)}
-			/>
-			<Route
-				path="/dashboard/favorites"
-				element={renderDashboardPage(DashboardFavoritesPage)}
-			/>
-			<Route
-				path="/dashboard/chat"
-				element={renderDashboardPage(ChatPage)}
-			/>
-
+			{/* Admin routes (also wrapped by SearchProvider + DashboardLayout) */}
 			<Route
 				path="/dashboard/admin/submissions"
-				element={
-					<AdminRoute>
-						<DashboardLayout>
-							<AdminSubmissionsPage />
-						</DashboardLayout>
-					</AdminRoute>
-				}
+				element={renderAdminDashboardPage(AdminSubmissionsPage)}
 			/>
 			<Route
 				path="/dashboard/admin/missions/:id/edit"
-				element={
-					<AdminRoute>
-						<DashboardLayout>
-							<AdminMissionEditPage />
-						</DashboardLayout>
-					</AdminRoute>
-				}
+				element={renderAdminDashboardPage(AdminMissionEditPage)}
 			/>
 			<Route
 				path="/dashboard/admin/missions/new"
-				element={
-					<AdminRoute>
-						<DashboardLayout>
-							<AdminMissionCreatePage />
-						</DashboardLayout>
-					</AdminRoute>
-				}
+				element={renderAdminDashboardPage(AdminMissionCreatePage)}
 			/>
 			<Route
 				path="/dashboard/admin/users"
-				element={
-					<AdminRoute>
-						<DashboardLayout>
-							<AdminUsersPage />
-						</DashboardLayout>
-					</AdminRoute>
-				}
+				element={renderAdminDashboardPage(AdminUsersPage)}
 			/>
-
-
-
-
-
-
-
-
 
 			{/* Catch-all: 404 inside the main Layout */}
 			<Route
