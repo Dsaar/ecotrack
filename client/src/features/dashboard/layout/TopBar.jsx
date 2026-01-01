@@ -10,40 +10,65 @@ import {
 	Menu,
 	MenuItem,
 	Divider,
+	Autocomplete,
+	Paper,
 } from "@mui/material";
 import SearchIcon from "@mui/icons-material/Search";
 import DarkModeIcon from "@mui/icons-material/DarkMode";
 import LightModeIcon from "@mui/icons-material/LightMode";
 import { useUser } from "../../../app/providers/UserProvider.jsx";
 import { useThemeMode } from "../../../app/providers/CustomThemeProvider.jsx";
-import { useNavigate } from "react-router-dom";
-import { useState } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
+import { useMemo, useState } from "react";
 import { useSearch } from "../../../app/providers/SearchProvider.jsx";
+import { GLOBAL_SEARCH_INDEX } from "../../../app/search/globalSearchIndex.js";
 
 function TopBar() {
 	const { user, logout } = useUser();
 	const { mode, toggleColorMode } = useThemeMode();
 	const navigate = useNavigate();
-
-	// ✅ Global search state (works on all dashboard pages)
+	const location = useLocation();
 	const { query, setQuery } = useSearch();
 
-	// ✅ Robust display name builder
+	// ✅ Pages where search is "in-page filter" (no navigation dropdown behavior)
+	const IN_PAGE_SEARCH_PREFIXES = [
+		"/dashboard/missions",
+		"/dashboard/favorites",
+		"/dashboard/admin/users",
+	];
+
+	const isInPageSearch = IN_PAGE_SEARCH_PREFIXES.some((p) =>
+		location.pathname.startsWith(p)
+	);
+
+	// ✅ Build display name
 	const displayName = (() => {
 		if (!user) return "EcoTrack User";
-
 		if (user.name && typeof user.name === "object") {
 			const first = user.name.first || user.name.firstName;
 			const last = user.name.last || user.name.lastName;
 			const full = [first, last].filter(Boolean).join(" ");
 			if (full) return full;
 		}
-
 		if (typeof user.name === "string") return user.name;
 		if (user.email) return user.email;
-
 		return "EcoTrack User";
 	})();
+
+	// ✅ Dropdown options (filtered by query + adminOnly)
+	const options = useMemo(() => {
+		const q = (query || "").trim().toLowerCase();
+		if (!q) return [];
+
+		return GLOBAL_SEARCH_INDEX
+			.filter((item) => {
+				if (item.adminOnly && !user?.isAdmin) return false;
+
+				const hay = `${item.label} ${(item.keywords || []).join(" ")}`.toLowerCase();
+				return hay.includes(q);
+			})
+			.slice(0, 8); // keep it tidy
+	}, [query, user?.isAdmin]);
 
 	const [anchorEl, setAnchorEl] = useState(null);
 	const open = Boolean(anchorEl);
@@ -64,11 +89,13 @@ function TopBar() {
 
 	const isDark = mode === "dark";
 
-	// ✅ Use real avatar image when available (Image submodel support)
-	const avatarSrc =
-		user?.avatarUrl?.url ||
-		(typeof user?.avatarUrl === "string" ? user.avatarUrl : null) ||
-		undefined;
+	// ✅ When selecting from dropdown -> navigate
+	const handleSelect = (_e, value) => {
+		if (!value?.path) return;
+		navigate(value.path);
+		// optional: clear query after navigation
+		setQuery("");
+	};
 
 	return (
 		<Box
@@ -83,42 +110,81 @@ function TopBar() {
 				gap: 2,
 			}}
 		>
-			{/* Left side: Title */}
-			<Box sx={{ flexGrow: 1 }}>
-				<Typography variant="h6" sx={{ fontWeight: 600 }}>
+			{/* Left side */}
+			<Box sx={{ flexGrow: 1, minWidth: 0 }}>
+				<Typography variant="h6" sx={{ fontWeight: 600 }} noWrap>
 					{`Welcome back, ${displayName}`}
 				</Typography>
-				<Typography variant="body2" color="text.secondary">
+				<Typography variant="body2" color="text.secondary" noWrap>
 					Here&apos;s your EcoTrack dashboard.
 				</Typography>
 			</Box>
 
-			{/* ✅ Search (always enabled) */}
-			<TextField
-				size="small"
-				placeholder="Search…"
-				sx={{ maxWidth: 260, display: { xs: "none", sm: "block" } }}
-				value={query}
-				onChange={(e) => setQuery(e.target.value)}
-				InputProps={{
-					startAdornment: (
-						<InputAdornment position="start">
-							<SearchIcon fontSize="small" />
-						</InputAdornment>
-					),
-				}}
-			/>
+			{/* ✅ Global Search: in-page filter OR dropdown nav depending on route */}
+			<Box sx={{ width: { xs: "100%", sm: 320 }, display: { xs: "none", sm: "block" } }}>
+				<Autocomplete
+					freeSolo
+					disableClearable
+					options={isInPageSearch ? [] : options}
+					getOptionLabel={(opt) => (typeof opt === "string" ? opt : opt.label)}
+					filterOptions={(x) => x} // we already filter via options memo
+					onChange={isInPageSearch ? undefined : handleSelect}
+					inputValue={query || ""}
+					onInputChange={(_e, value) => setQuery(value)}
+					open={!isInPageSearch && !!(query || "").trim() && options.length > 0}
+					PaperComponent={(props) => (
+						<Paper
+							{...props}
+							elevation={6}
+							sx={{
+								borderRadius: 0.5,
+								mt: 1,
+								overflow: "hidden",
+								border: "1px solid",
+								borderColor: "divider",
+							}}
+						/>
+					)}
+					renderInput={(params) => (
+						<TextField
+							{...params}
+							size="small"
+							placeholder={isInPageSearch ? "Search on this page…" : "Search EcoTrack…"}
+							InputProps={{
+								...params.InputProps,
+								startAdornment: (
+									<InputAdornment position="start">
+										<SearchIcon fontSize="small" />
+									</InputAdornment>
+								),
+							}}
+						/>
+					)}
+					renderOption={(props, option) => (
+						<li {...props} key={option.path}>
+							<Box sx={{ display: "flex", flexDirection: "column", py: 0.25 }}>
+								<Typography sx={{ fontSize: 14, fontWeight: 700 }}>
+									{option.label}
+								</Typography>
+{/* 								<Typography sx={{ fontSize: 12 }} color="text.secondary">
+									{option.path}
+								</Typography> */}
+							</Box>
+						</li>
+					)}
+				/>
+			</Box>
 
 			{/* Theme toggle */}
 			<IconButton onClick={toggleColorMode} sx={{ ml: 1 }}>
 				{isDark ? <LightModeIcon /> : <DarkModeIcon />}
 			</IconButton>
 
-			{/* Profile avatar + dropdown */}
+			{/* Avatar */}
 			<Stack direction="row" spacing={2} alignItems="center">
 				<IconButton onClick={handleAvatarClick} size="small">
 					<Avatar
-						src={avatarSrc}
+						src={user?.avatarUrl?.url || user?.avatarUrl || undefined}
 						alt={displayName}
 						sx={{
 							bgcolor: "#166534",
