@@ -18,13 +18,11 @@ import GavelIcon from "@mui/icons-material/Gavel";
 import PeopleIcon from "@mui/icons-material/People";
 import ChatIcon from "@mui/icons-material/Chat";
 
-
-
 import { useNavigate, useLocation } from "react-router-dom";
 import Logo from "../../../components/common/Logo.jsx";
 import { useUser } from "../../../app/providers/UserProvider.jsx";
 
-function Sidebar() {
+function Sidebar({ mobile = false, onNavigate }) {
 	const navigate = useNavigate();
 	const location = useLocation();
 	const { user } = useUser();
@@ -41,17 +39,23 @@ function Sidebar() {
 
 	const isActive = (path) => location.pathname === path;
 
+	const go = (path) => {
+		navigate(path);
+		onNavigate?.(); // ✅ close drawer if we're in mobile drawer mode
+	};
+
 	return (
 		<Box
 			component="aside"
 			sx={{
 				width: 260,
-				borderRight: "1px solid",
+				borderRight: mobile ? "none" : "1px solid",
 				borderColor: "divider",
 				bgcolor: "background.paper",
-				display: { xs: "none", md: "flex" },
+				display: mobile ? "flex" : { xs: "none", md: "flex" },
 				flexDirection: "column",
 				p: 2,
+
 			}}
 		>
 			{/* Logo */}
@@ -79,7 +83,7 @@ function Sidebar() {
 					return (
 						<ListItemButton
 							key={item.label}
-							onClick={() => navigate(item.path)}
+							onClick={() => go(item.path)}
 							selected={active}
 							sx={{
 								borderRadius: 2,
@@ -116,10 +120,8 @@ function Sidebar() {
 
 					<List>
 						<ListItemButton
-							onClick={() => navigate("/dashboard/admin/submissions")}
-							selected={location.pathname.startsWith(
-								"/dashboard/admin/submissions"
-							)}
+							onClick={() => go("/dashboard/admin/submissions")}
+							selected={location.pathname.startsWith("/dashboard/admin/submissions")}
 							sx={{
 								borderRadius: 2,
 								mb: 0.5,
@@ -134,8 +136,9 @@ function Sidebar() {
 								primaryTypographyProps={{ fontSize: 14 }}
 							/>
 						</ListItemButton>
+
 						<ListItemButton
-							onClick={() => navigate("/dashboard/admin/users")}
+							onClick={() => go("/dashboard/admin/users")}
 							selected={location.pathname.startsWith("/dashboard/admin/users")}
 							sx={{
 								borderRadius: 2,
