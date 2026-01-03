@@ -19,6 +19,10 @@ import {
 	DialogActions,
 	Button,
 	Stack,
+	TableContainer,
+	useMediaQuery,
+	useTheme,
+	Divider,
 } from "@mui/material";
 import DeleteIcon from "@mui/icons-material/Delete";
 
@@ -46,6 +50,9 @@ export default function AdminUsersPage() {
 	const [deleteOpen, setDeleteOpen] = useState(false);
 	const [deleteTarget, setDeleteTarget] = useState(null);
 	const [deleting, setDeleting] = useState(false);
+
+	const theme = useTheme();
+	const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
 
 	// ✅ Clear search when leaving this page
 	useEffect(() => {
@@ -135,10 +142,7 @@ export default function AdminUsersPage() {
 			const last = (u?.name?.last || "").toLowerCase();
 			const email = (u?.email || "").toLowerCase();
 			const phone = (u?.phone || "").toLowerCase();
-
-			// allow searching "admin"
 			const roleText = u?.isAdmin ? "admin" : "user";
-
 			const fullName = `${first} ${last}`.trim();
 
 			return (
@@ -179,71 +183,125 @@ export default function AdminUsersPage() {
 			</Stack>
 
 			<Card sx={{ borderRadius: 4 }}>
-				<CardContent>
+				<CardContent sx={{ p: { xs: 1.5, sm: 2 } }}>
 					{loading ? (
 						<Typography color="text.secondary">Loading users...</Typography>
-					) : (
-						<Table>
-							<TableHead>
-								<TableRow>
-									<TableCell>
-										<b>Name</b>
-									</TableCell>
-									<TableCell>
-										<b>Email</b>
-									</TableCell>
-									<TableCell>
-										<b>Phone</b>
-									</TableCell>
-									<TableCell>
-										<b>Admin</b>
-									</TableCell>
-									<TableCell align="right">
-										<b>Delete User</b>
-									</TableCell>
-								</TableRow>
-							</TableHead>
+					) : filteredUsers.length === 0 ? (
+						<Typography color="text.secondary">
+							{q ? "No users match your search." : "No users found."}
+						</Typography>
+					) : isMobile ? (
+						// ✅ Mobile: cards
+						<Stack spacing={1.25}>
+							{filteredUsers.map((u) => {
+								const name = u?.name?.first
+									? `${u.name.first} ${u.name.last || ""}`
+									: "—";
+								const isSelf = String(user?._id) === String(u._id);
 
-							<TableBody>
-								{filteredUsers.map((u) => (
-									<TableRow key={u._id}>
+								return (
+									<Card
+										key={u._id}
+										variant="outlined"
+										sx={{ borderRadius: 3, overflow: "hidden" }}
+									>
+										<CardContent sx={{ p: 1.5 }}>
+											<Stack spacing={1}>
+												<Stack direction="row" alignItems="center" justifyContent="space-between">
+													<Box sx={{ minWidth: 0 }}>
+														<Typography sx={{ fontWeight: 800 }} noWrap>
+															{name}
+														</Typography>
+														<Typography variant="body2" color="text.secondary" noWrap>
+															{u.email}
+														</Typography>
+													</Box>
+
+													<Tooltip title={isSelf ? "You can’t delete yourself" : "Delete user"}>
+														<span>
+															<IconButton
+																onClick={() => openDelete(u)}
+																disabled={isSelf}
+																size="small"
+															>
+																<DeleteIcon fontSize="small" />
+															</IconButton>
+														</span>
+													</Tooltip>
+												</Stack>
+
+												{u.phone ? (
+													<Typography variant="body2" color="text.secondary">
+														Phone: {u.phone}
+													</Typography>
+												) : null}
+
+												<Divider />
+
+												<Stack direction="row" alignItems="center" justifyContent="space-between">
+													<Typography variant="body2" sx={{ fontWeight: 700 }}>
+														Admin
+													</Typography>
+													<Switch checked={!!u.isAdmin} onChange={() => handleToggleAdmin(u)} />
+												</Stack>
+											</Stack>
+										</CardContent>
+									</Card>
+								);
+							})}
+						</Stack>
+					) : (
+						// ✅ Desktop/tablet: table (with safe overflow)
+						<TableContainer sx={{ overflowX: "auto" }}>
+							<Table>
+								<TableHead>
+									<TableRow>
 										<TableCell>
-											{u?.name?.first ? `${u.name.first} ${u.name.last || ""}` : "—"}
+											<b>Name</b>
 										</TableCell>
-										<TableCell>{u.email}</TableCell>
-										<TableCell>{u.phone || "—"}</TableCell>
 										<TableCell>
-											<Switch
-												checked={!!u.isAdmin}
-												onChange={() => handleToggleAdmin(u)}
-											/>
+											<b>Email</b>
+										</TableCell>
+										<TableCell>
+											<b>Phone</b>
+										</TableCell>
+										<TableCell>
+											<b>Admin</b>
 										</TableCell>
 										<TableCell align="right">
-											<Tooltip title="Delete user">
-												<span>
-													<IconButton
-														onClick={() => openDelete(u)}
-														disabled={String(user?._id) === String(u._id)}
-													>
-														<DeleteIcon />
-													</IconButton>
-												</span>
-											</Tooltip>
+											<b>Delete</b>
 										</TableCell>
 									</TableRow>
-								))}
+								</TableHead>
 
-								{filteredUsers.length === 0 && (
-									<TableRow>
-										<TableCell colSpan={5}>
-											<Typography color="text.secondary">
-												{q ? "No users match your search." : "No users found."}
-											</Typography>
-										</TableCell>
-									</TableRow>
-								)}
-							</TableBody>
-						</Table>
+								<TableBody>
+									{filteredUsers.map((u) => (
+										<TableRow key={u._id}>
+											<TableCell>
+												{u?.name?.first ? `${u.name.first} ${u.name.last || ""}` : "—"}
+											</TableCell>
+											<TableCell>{u.email}</TableCell>
+											<TableCell>{u.phone || "—"}</TableCell>
+											<TableCell>
+												<Switch checked={!!u.isAdmin} onChange={() => handleToggleAdmin(u)} />
+											</TableCell>
+											<TableCell align="right">
+												<Tooltip title="Delete user">
+													<span>
+														<IconButton
+															onClick={() => openDelete(u)}
+															disabled={String(user?._id) === String(u._id)}
+														>
+															<DeleteIcon />
+														</IconButton>
+													</span>
+												</Tooltip>
+											</TableCell>
+										</TableRow>
+									))}
+								</TableBody>
+							</Table>
+						</TableContainer>
 					)}
 				</CardContent>
 			</Card>

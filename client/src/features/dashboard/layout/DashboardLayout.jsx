@@ -22,8 +22,20 @@ function DashboardLayout({ children }) {
 					bgcolor: "background.default",
 				}}
 			>
-				{/* ✅ Desktop sidebar */}
-				<Sidebar />
+				{/* ✅ Desktop sidebar (sticky) */}
+				<Box
+					sx={{
+						display: { xs: "none", md: "block" },
+						position: "sticky",
+						top: 0, // TopBar is inside the content column, so sidebar can stick to top of viewport
+						alignSelf: "flex-start",
+						height: "100vh",
+						overflowY: "auto",
+						flexShrink: 0,
+					}}
+				>
+					<Sidebar />
+				</Box>
 
 				{/* ✅ Mobile sidebar drawer */}
 				<Drawer
@@ -33,13 +45,16 @@ function DashboardLayout({ children }) {
 					keepMounted
 					sx={{
 						display: { xs: "block", md: "none" },
-						"& .MuiDrawer-paper": { width: 260 },
+						"& .MuiDrawer-paper": {
+							width: 260,
+						},
 					}}
 				>
 					<Sidebar mobile onNavigate={closeMobileSidebar} />
 				</Drawer>
 
-				<Box sx={{ flex: 1, display: "flex", flexDirection: "column" }}>
+				{/* Right side column: TopBar (sticky) + page content */}
+				<Box sx={{ flex: 1, display: "flex", flexDirection: "column", minWidth: 0 }}>
 					<TopBar onToggleSidebar={toggleMobileSidebar} />
 
 					<Box

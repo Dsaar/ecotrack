@@ -1,3 +1,4 @@
+import { useState } from "react";
 import {
 	AppBar,
 	Box,
@@ -6,18 +7,27 @@ import {
 	Stack,
 	Toolbar,
 	IconButton,
+	Drawer,
+	List,
+	ListItemButton,
+	ListItemText,
+	Divider,
 } from "@mui/material";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import DarkModeIcon from "@mui/icons-material/DarkMode";
 import LightModeIcon from "@mui/icons-material/LightMode";
+import MenuIcon from "@mui/icons-material/Menu";
 import Logo from "../../../components/common/Logo.jsx";
 import { useUser } from "../../providers/UserProvider.jsx";
 import { useThemeMode } from "../../providers/CustomThemeProvider.jsx";
 
 function Header() {
 	const navigate = useNavigate();
+	const location = useLocation();
 	const { user, logout } = useUser();
 	const { mode, toggleColorMode } = useThemeMode();
+
+	const [mobileOpen, setMobileOpen] = useState(false);
 
 	const isDark = mode === "dark";
 
@@ -26,9 +36,49 @@ function Header() {
 		navigate("/");
 	};
 
+	const closeDrawer = () => setMobileOpen(false);
+	const toggleDrawer = () => setMobileOpen((v) => !v);
+
+	// ✅ Impact behavior:
+	// - If you are already on "/", scroll to #impact
+	// - Otherwise navigate to "/#impact"
+	const goImpact = () => {
+		closeDrawer();
+
+		if (location.pathname === "/") {
+			const el = document.querySelector("#impact");
+			if (el) {
+				el.scrollIntoView({ behavior: "smooth", block: "start" });
+			}
+			return;
+		}
+
+		navigate("/#impact");
+	};
+
+	const goMissions = () => {
+		closeDrawer();
+		navigate("/missions");
+	};
+
+	const goDashboard = () => {
+		closeDrawer();
+		navigate("/dashboard");
+	};
+
+	const goLogin = () => {
+		closeDrawer();
+		navigate("/login");
+	};
+
+	const goRegister = () => {
+		closeDrawer();
+		navigate("/register");
+	};
+
 	return (
 		<AppBar
-			position="static"
+			position="sticky"
 			elevation={0}
 			sx={{
 				bgcolor: "background.paper",
@@ -48,6 +98,16 @@ function Header() {
 						gap: 1,
 					}}
 				>
+					{/* ✅ Mobile hamburger (only on mobile) */}
+					<IconButton
+						onClick={toggleDrawer}
+						size="small"
+						aria-label="Open menu"
+						sx={{ display: { xs: "inline-flex", md: "none" } }}
+					>
+						<MenuIcon />
+					</IconButton>
+
 					{/* Logo */}
 					<Box
 						sx={{
@@ -70,14 +130,10 @@ function Header() {
 							display: { xs: "none", md: "flex" },
 						}}
 					>
-						<Button
-							sx={{ textTransform: "none" }}
-							color="inherit"
-							onClick={() => navigate("/missions")}
-						>
+						<Button sx={{ textTransform: "none" }} color="inherit" onClick={goMissions}>
 							Missions
 						</Button>
-						<Button sx={{ textTransform: "none" }} color="inherit" onClick={() => navigate("/missions")}>
+						<Button sx={{ textTransform: "none" }} color="inherit" onClick={goImpact}>
 							Impact
 						</Button>
 					</Stack>
@@ -91,7 +147,11 @@ function Header() {
 					>
 						{/* Theme toggle */}
 						<IconButton size="small" onClick={toggleColorMode}>
-							{isDark ? <LightModeIcon fontSize="small" /> : <DarkModeIcon fontSize="small" />}
+							{isDark ? (
+								<LightModeIcon fontSize="small" />
+							) : (
+								<DarkModeIcon fontSize="small" />
+							)}
 						</IconButton>
 
 						{user ? (
@@ -146,6 +206,62 @@ function Header() {
 					</Stack>
 				</Toolbar>
 			</Container>
+
+			{/* ✅ Mobile Drawer menu */}
+			<Drawer
+				anchor="left"
+				open={mobileOpen}
+				onClose={closeDrawer}
+				PaperProps={{
+					sx: {
+						width: 280,
+						bgcolor: "background.paper",
+					},
+				}}
+			>
+				<Box sx={{ p: 2, display: "flex", alignItems: "center" }}>
+					<Logo height={28} />
+				</Box>
+				<Divider />
+
+				<List>
+					<ListItemButton onClick={goMissions}>
+						<ListItemText primary="Missions" />
+					</ListItemButton>
+					<ListItemButton onClick={goImpact}>
+						<ListItemText primary="Impact" />
+					</ListItemButton>
+				</List>
+
+				<Divider />
+
+				<List>
+					{user ? (
+						<>
+							<ListItemButton onClick={goDashboard}>
+								<ListItemText primary="Dashboard" />
+							</ListItemButton>
+							<ListItemButton
+								onClick={() => {
+									closeDrawer();
+									handleLogout();
+								}}
+							>
+								<ListItemText primary="Log out" />
+							</ListItemButton>
+						</>
+					) : (
+						<>
+							<ListItemButton onClick={goLogin}>
+								<ListItemText primary="Log in" />
+							</ListItemButton>
+							<ListItemButton onClick={goRegister}>
+								<ListItemText primary="Sign up" />
+							</ListItemButton>
+						</>
+					)}
+				</List>
+			</Drawer>
 		</AppBar>
 	);
 }

@@ -23,6 +23,9 @@ import {
 	CircularProgress,
 	Link,
 	Divider,
+	TableContainer,
+	useMediaQuery,
+	useTheme,
 } from "@mui/material";
 import { useNavigate } from "react-router-dom";
 
@@ -43,7 +46,6 @@ function StatusChip({ status }) {
 }
 
 function isLikelyImageUrl(url = "") {
-	// quick heuristic: file extension OR common image hosts you use
 	return /\.(png|jpe?g|gif|webp|bmp|svg)$/i.test(url) || url.includes("picsum.photos");
 }
 
@@ -51,6 +53,9 @@ export default function AdminSubmissionsPage() {
 	const { user } = useUser();
 	const navigate = useNavigate();
 	const { showSuccess, showError } = useSnackbar();
+
+	const theme = useTheme();
+	const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
 
 	useEffect(() => {
 		if (user && !user.isAdmin) navigate("/dashboard");
@@ -163,25 +168,36 @@ export default function AdminSubmissionsPage() {
 				Review mission submissions and approve or reject them.
 			</Typography>
 
-			<Stack direction="row" spacing={2} sx={{ mb: 2 }} alignItems="center">
+			<Stack
+				direction={{ xs: "column", sm: "row" }}
+				spacing={1.25}
+				sx={{ mb: 2 }}
+				alignItems={{ xs: "stretch", sm: "center" }}
+			>
 				<ToggleButtonGroup
 					value={status}
 					exclusive
 					onChange={(_e, v) => v && setStatus(v)}
 					size="small"
+					sx={{ alignSelf: { xs: "flex-start", sm: "auto" } }}
 				>
 					<ToggleButton value="pending">Pending</ToggleButton>
 					<ToggleButton value="approved">Approved</ToggleButton>
 					<ToggleButton value="rejected">Rejected</ToggleButton>
 				</ToggleButtonGroup>
 
-				<Button variant="outlined" size="small" onClick={load} sx={{ textTransform: "none" }}>
+				<Button
+					variant="outlined"
+					size="small"
+					onClick={load}
+					sx={{ textTransform: "none", alignSelf: { xs: "flex-start", sm: "auto" } }}
+				>
 					Refresh
 				</Button>
 			</Stack>
 
-			<Card sx={{ borderRadius: 4 }}>
-				<CardContent>
+			<Card sx={{ borderRadius: 2 }}>
+				<CardContent sx={{ p: { xs: 1.5, sm: 2 } }}>
 					{loading ? (
 						<Box sx={{ display: "flex", justifyContent: "center", py: 6 }}>
 							<CircularProgress />
@@ -190,100 +206,50 @@ export default function AdminSubmissionsPage() {
 						<Typography color="text.secondary">
 							No submissions found for this status.
 						</Typography>
-					) : (
-						<Table size="small">
-							<TableHead>
-								<TableRow>
-									<TableCell>Mission</TableCell>
-									<TableCell>User</TableCell>
-									<TableCell>Status</TableCell>
-									<TableCell>Created</TableCell>
-									<TableCell>Evidence</TableCell>
-									<TableCell align="right">Actions</TableCell>
-								</TableRow>
-							</TableHead>
+					) : isMobile ? (
+						// ✅ Mobile: cards list
+						<Stack spacing={1.25}>
+							{rows.map((sub) => {
+								const missionTitle = sub?.missionId?.title || "—";
+								const userName =
+									[sub?.userId?.name?.first, sub?.userId?.name?.last]
+										.filter(Boolean)
+										.join(" ") ||
+									sub?.userId?.email ||
+									"—";
 
-							<TableBody>
-								{rows.map((sub) => {
-									const missionTitle = sub?.missionId?.title || "—";
-									const userName =
-										[sub?.userId?.name?.first, sub?.userId?.name?.last]
-											.filter(Boolean)
-											.join(" ") ||
-										sub?.userId?.email ||
-										"—";
+								const created = sub?.createdAt
+									? new Date(sub.createdAt).toLocaleString()
+									: "—";
 
-									const created = sub?.createdAt
-										? new Date(sub.createdAt).toLocaleString()
-										: "—";
+								const busy = actingId === sub._id;
+								const evidence = Array.isArray(sub?.evidenceUrls) ? sub.evidenceUrls : [];
 
-									const busy = actingId === sub._id;
-									const evidence = Array.isArray(sub?.evidenceUrls) ? sub.evidenceUrls : [];
-
-									return (
-										<TableRow key={sub._id} hover sx={{ verticalAlign: "top" }}>
-											<TableCell>{missionTitle}</TableCell>
-
-											<TableCell>
-												<Stack spacing={0.5}>
-													<Typography variant="body2">{userName}</Typography>
-													{sub?.userId?.email && (
-														<Typography variant="caption" color="text.secondary">
-															{sub.userId.email}
+								return (
+									<Card key={sub._id} variant="outlined" sx={{ borderRadius: 2 }}>
+										<CardContent sx={{ p: 1.5 }}>
+											<Stack spacing={1}>
+												<Stack direction="row" alignItems="flex-start" justifyContent="space-between" spacing={1}>
+													<Box sx={{ minWidth: 0 }}>
+														<Typography sx={{ fontWeight: 800 }} noWrap>
+															{missionTitle}
 														</Typography>
-													)}
-												</Stack>
-											</TableCell>
-
-											<TableCell>
-												<Stack spacing={0.5}>
+														<Typography variant="body2" color="text.secondary" noWrap>
+															{userName}
+														</Typography>
+													</Box>
 													<StatusChip status={sub.status} />
-													{status === "rejected" && sub?.rejectionReason && (
-														<Typography variant="caption" color="error">
-															Reason: {sub.rejectionReason}
-														</Typography>
-													)}
 												</Stack>
-											</TableCell>
 
-											<TableCell>{created}</TableCell>
+												<Typography variant="caption" color="text.secondary">
+													Created: {created}
+												</Typography>
 
-											<TableCell>
-												{evidence.length === 0 ? (
-													<Typography variant="body2" color="text.secondary">
-														—
-													</Typography>
-												) : (
-													<Stack spacing={0.5}>
-														<Typography variant="body2">
-															{evidence.length} link{evidence.length > 1 ? "s" : ""}
-														</Typography>
+												<Typography variant="body2" color="text.secondary">
+													Evidence: {evidence.length || 0} link{evidence.length === 1 ? "" : "s"}
+												</Typography>
 
-														{/* show a tiny hint */}
-														{evidence.slice(0, 1).map((url) => (
-															<Link
-																key={url}
-																href={url}
-																target="_blank"
-																rel="noreferrer"
-																variant="caption"
-																sx={{ wordBreak: "break-all" }}
-															>
-																Open
-															</Link>
-														))}
-
-														{evidence.length > 1 && (
-															<Typography variant="caption" color="text.secondary">
-																+{evidence.length - 1} more
-															</Typography>
-														)}
-													</Stack>
-												)}
-											</TableCell>
-
-											<TableCell align="right">
-												<Stack direction="row" spacing={1} justifyContent="flex-end">
+												<Stack direction="row" spacing={1} justifyContent="flex-end" flexWrap="wrap">
 													<Button
 														size="small"
 														variant="outlined"
@@ -298,7 +264,6 @@ export default function AdminSubmissionsPage() {
 															<Button
 																size="small"
 																variant="contained"
-																color=""
 																disabled={busy}
 																onClick={() => handleApprove(sub._id)}
 																sx={{
@@ -321,18 +286,164 @@ export default function AdminSubmissionsPage() {
 																Reject
 															</Button>
 														</>
-													) : (
+													) : null}
+												</Stack>
+
+												{status === "rejected" && sub?.rejectionReason ? (
+													<Typography variant="caption" color="error">
+														Reason: {sub.rejectionReason}
+													</Typography>
+												) : null}
+											</Stack>
+										</CardContent>
+									</Card>
+								);
+							})}
+						</Stack>
+					) : (
+						// ✅ Desktop/tablet: table (with safe overflow)
+						<TableContainer sx={{ overflowX: "auto" }}>
+							<Table size="small">
+								<TableHead>
+									<TableRow>
+										<TableCell>Mission</TableCell>
+										<TableCell>User</TableCell>
+										<TableCell>Status</TableCell>
+										<TableCell>Created</TableCell>
+										<TableCell>Evidence</TableCell>
+										<TableCell align="right">Actions</TableCell>
+									</TableRow>
+								</TableHead>
+
+								<TableBody>
+									{rows.map((sub) => {
+										const missionTitle = sub?.missionId?.title || "—";
+										const userName =
+											[sub?.userId?.name?.first, sub?.userId?.name?.last]
+												.filter(Boolean)
+												.join(" ") ||
+											sub?.userId?.email ||
+											"—";
+
+										const created = sub?.createdAt
+											? new Date(sub.createdAt).toLocaleString()
+											: "—";
+
+										const busy = actingId === sub._id;
+										const evidence = Array.isArray(sub?.evidenceUrls) ? sub.evidenceUrls : [];
+
+										return (
+											<TableRow key={sub._id} hover sx={{ verticalAlign: "top" }}>
+												<TableCell>{missionTitle}</TableCell>
+
+												<TableCell>
+													<Stack spacing={0.5}>
+														<Typography variant="body2">{userName}</Typography>
+														{sub?.userId?.email && (
+															<Typography variant="caption" color="text.secondary">
+																{sub.userId.email}
+															</Typography>
+														)}
+													</Stack>
+												</TableCell>
+
+												<TableCell>
+													<Stack spacing={0.5}>
+														<StatusChip status={sub.status} />
+														{status === "rejected" && sub?.rejectionReason && (
+															<Typography variant="caption" color="error">
+																Reason: {sub.rejectionReason}
+															</Typography>
+														)}
+													</Stack>
+												</TableCell>
+
+												<TableCell>{created}</TableCell>
+
+												<TableCell>
+													{evidence.length === 0 ? (
 														<Typography variant="body2" color="text.secondary">
 															—
 														</Typography>
+													) : (
+														<Stack spacing={0.5}>
+															<Typography variant="body2">
+																{evidence.length} link{evidence.length > 1 ? "s" : ""}
+															</Typography>
+
+															{evidence.slice(0, 1).map((url) => (
+																<Link
+																	key={url}
+																	href={url}
+																	target="_blank"
+																	rel="noreferrer"
+																	variant="caption"
+																	sx={{ wordBreak: "break-all" }}
+																>
+																	Open
+																</Link>
+															))}
+
+															{evidence.length > 1 && (
+																<Typography variant="caption" color="text.secondary">
+																	+{evidence.length - 1} more
+																</Typography>
+															)}
+														</Stack>
 													)}
-												</Stack>
-											</TableCell>
-										</TableRow>
-									);
-								})}
-							</TableBody>
-						</Table>
+												</TableCell>
+
+												<TableCell align="right">
+													<Stack direction="row" spacing={1} justifyContent="flex-end">
+														<Button
+															size="small"
+															variant="outlined"
+															onClick={() => openView(sub)}
+															sx={{ textTransform: "none" }}
+														>
+															View
+														</Button>
+
+														{status === "pending" ? (
+															<>
+																<Button
+																	size="small"
+																	variant="contained"
+																	disabled={busy}
+																	onClick={() => handleApprove(sub._id)}
+																	sx={{
+																		textTransform: "none",
+																		bgcolor: "#166534",
+																		"&:hover": { bgcolor: "#14532d" },
+																	}}
+																>
+																	{busy ? "..." : "Approve"}
+																</Button>
+
+																<Button
+																	size="small"
+																	variant="outlined"
+																	color="error"
+																	disabled={busy}
+																	onClick={() => openReject(sub._id)}
+																	sx={{ textTransform: "none" }}
+																>
+																	Reject
+																</Button>
+															</>
+														) : (
+															<Typography variant="body2" color="text.secondary">
+																—
+															</Typography>
+														)}
+													</Stack>
+												</TableCell>
+											</TableRow>
+										);
+									})}
+								</TableBody>
+							</Table>
+						</TableContainer>
 					)}
 				</CardContent>
 			</Card>
@@ -358,7 +469,6 @@ export default function AdminSubmissionsPage() {
 
 						<Divider />
 
-						{/* Answers */}
 						<Box>
 							<Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 1 }}>
 								Answers
@@ -394,7 +504,6 @@ export default function AdminSubmissionsPage() {
 
 						<Divider />
 
-						{/* Evidence */}
 						<Box>
 							<Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 1 }}>
 								Evidence
@@ -416,7 +525,6 @@ export default function AdminSubmissionsPage() {
 												overflow: "hidden",
 											}}
 										>
-											{/* Image preview if likely an image */}
 											{isLikelyImageUrl(url) ? (
 												<Box
 													component="img"
@@ -430,7 +538,6 @@ export default function AdminSubmissionsPage() {
 														bgcolor: "action.hover",
 													}}
 													onError={(e) => {
-														// if image fails, hide it (fallback to link below)
 														e.currentTarget.style.display = "none";
 													}}
 												/>
@@ -466,7 +573,7 @@ export default function AdminSubmissionsPage() {
 				<DialogTitle>Reject submission</DialogTitle>
 				<DialogContent>
 					<Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-						Add an optional reason. (This is saved in <code>rejectionReason</code> and can be shown to the user.)
+						Add an optional reason. (Saved as <code>rejectionReason</code>.)
 					</Typography>
 					<TextField
 						label="Reason (optional)"

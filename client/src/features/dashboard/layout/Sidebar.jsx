@@ -55,6 +55,7 @@ function Sidebar({ mobile = false, onNavigate }) {
 				display: mobile ? "flex" : { xs: "none", md: "flex" },
 				flexDirection: "column",
 				p: 2,
+				height:"100vh"
 
 			}}
 		>
