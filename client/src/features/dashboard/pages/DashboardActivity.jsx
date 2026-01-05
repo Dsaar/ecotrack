@@ -1,5 +1,5 @@
-// src/features/dashboard/pages/DashboardActivity.jsx
-import { useEffect, useState } from "react";
+// client/src/features/dashboard/pages/DashboardActivity.jsx
+import { useEffect, useMemo, useState } from "react";
 import {
 	Box,
 	Card,
@@ -11,37 +11,36 @@ import {
 	List,
 	ListItemButton,
 	ListItemText,
+	Tabs,
+	Tab,
 } from "@mui/material";
 import { useNavigate } from "react-router-dom";
 
 import { useUser } from "../../../app/providers/UserProvider.jsx";
 import LoadingSpinner from "../../../components/common/LoadingSpinner.jsx";
-import { getMySubmissions } from "../../../services/submissionsService.js";
 import { useCommunity } from "../../../app/providers/CommunityProvider.jsx";
 
+// ✅ checkins service (approved completions)
+import { getMyCheckins } from "../../../services/checkinService.js";
 
-function statusChipProps(status) {
-	switch (status) {
-		case "approved":
-			return { label: "Approved", color: "success", variant: "outlined" };
-		case "rejected":
-			return { label: "Rejected", color: "error", variant: "outlined" };
-		case "pending":
-		default:
-			return { label: "Pending review", color: "default", variant: "outlined" };
-	}
-}
+// ✅ submissions service (pending / rejected)
+import { getMySubmissions } from "../../../services/submissionsService.js";
 
 function DashboardActivity() {
 	const { user } = useUser();
 	const navigate = useNavigate();
 
+	const [checkins, setCheckins] = useState([]);
 	const [submissions, setSubmissions] = useState([]);
+
 	const [loading, setLoading] = useState(true);
 	const [error, setError] = useState("");
+
 	const { communityData } = useCommunity();
 	const myRank = communityData?.myRank?.byPoints;
 
+	// ✅ Tabs: approved (checkins) / pending / rejected
+	const [tab, setTab] = useState("approved");
 
 	useEffect(() => {
 		let cancelled = false;
@@ -50,12 +49,32 @@ function DashboardActivity() {
 			try {
 				setLoading(true);
 				setError("");
-				const data = await getMySubmissions();
+
+				// Load BOTH: checkins + submissions
+				const [checkinsRes, submissionsRes] = await Promise.all([
+					getMyCheckins(),
+					getMySubmissions(),
+				]);
+
+				// checkins service sometimes returns array or { items }
+				const checkinsData = Array.isArray(checkinsRes)
+					? checkinsRes
+					: checkinsRes?.items || checkinsRes?.data || [];
+
+				// submissions service sometimes returns axios res OR data
+				const rawSubs =
+					submissionsRes?.data ?? submissionsRes?.items ?? submissionsRes;
+
+				const subsData = Array.isArray(rawSubs)
+					? rawSubs
+					: rawSubs?.items || [];
+
 				if (!cancelled) {
-					setSubmissions(Array.isArray(data) ? data : []);
+					setCheckins(Array.isArray(checkinsData) ? checkinsData : []);
+					setSubmissions(Array.isArray(subsData) ? subsData : []);
 				}
 			} catch (err) {
-				console.error("Failed to load submissions:", err);
+				console.error("Failed to load activity:", err);
 				if (!cancelled) {
 					setError(
 						err?.response?.data?.message ||
@@ -73,11 +92,50 @@ function DashboardActivity() {
 		};
 	}, []);
 
-	// derived stats
+	// -----------------------
+	// Summary stats (keep yours)
+	// -----------------------
 	const ecoPoints = user?.points ?? 0;
 	const missionsStarted = user?.missions?.length ?? 0;
 	const favoritesCount = user?.favorites?.missions?.length ?? 0;
-	const submissionsCount = submissions.length;
+
+	const completionsCount = checkins.length; // ✅ approved completions
+
+	const pendingSubs = useMemo(
+		() => submissions.filter((s) => String(s.status || "").toLowerCase() === "pending"),
+		[submissions]
+	);
+
+	const rejectedSubs = useMemo(
+		() => submissions.filter((s) => String(s.status || "").toLowerCase() === "rejected"),
+		[submissions]
+	);
+
+	const totals = useMemo(() => {
+		return checkins.reduce(
+			(acc, c) => {
+				acc.points += Number(c.points || 0);
+				acc.co2Kg += Number(c.impact?.co2Kg || 0);
+				acc.waterL += Number(c.impact?.waterL || 0);
+				acc.wasteKg += Number(c.impact?.wasteKg || 0);
+				return acc;
+			},
+			{ points: 0, co2Kg: 0, waterL: 0, wasteKg: 0 }
+		);
+	}, [checkins]);
+
+	const getRejectionReason = (s) => {
+		// support common shapes
+		return (
+			s.rejectionReason ||
+			s.adminNote ||
+			s.moderation?.reason ||
+			s.moderationReason ||
+			s.reason ||
+			s.reviewNote ||
+			""
+		);
+	};
 
 	if (loading) {
 		return <LoadingSpinner fullScreen={false} />;
@@ -89,7 +147,7 @@ function DashboardActivity() {
 				My missions & activity
 			</Typography>
 			<Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-				See your missions, submissions and overall EcoTrack progress.
+				Your approved completions are recorded as check-ins, including points and impact.
 			</Typography>
 
 			{error && (
@@ -98,13 +156,9 @@ function DashboardActivity() {
 				</Typography>
 			)}
 
-			<Stack
-				direction={{ xs: "column", lg: "row" }}
-				spacing={3}
-				alignItems="stretch"
-			>
+			<Stack direction={{ xs: "column", lg: "row" }} spacing={3} alignItems="stretch">
 				{/* Left: summary stats */}
-				<Card sx={{ flex: { xs: "unset", lg: 1 }, borderRadius: 4 }}>
+				<Card sx={{ flex: { xs: "unset", lg: 1.4 }, borderRadius: 2 }}>
 					<CardContent>
 						<Typography variant="h6" sx={{ mb: 2 }}>
 							Summary
@@ -112,10 +166,7 @@ function DashboardActivity() {
 
 						<Stack direction={{ xs: "column", sm: "row" }} spacing={3}>
 							<Box>
-								<Typography
-									variant="h5"
-									sx={{ fontWeight: 600, color: "#166534" }}
-								>
+								<Typography variant="h5" sx={{ fontWeight: 600, color: "#166534" }}>
 									{ecoPoints}
 								</Typography>
 								<Typography variant="body2" color="text.secondary">
@@ -143,12 +194,13 @@ function DashboardActivity() {
 
 							<Box>
 								<Typography variant="h5" sx={{ fontWeight: 600 }}>
-									{submissionsCount}
+									{completionsCount}
 								</Typography>
 								<Typography variant="body2" color="text.secondary">
-									Submissions
+									Approved completions
 								</Typography>
 							</Box>
+
 							<Box
 								onClick={() => navigate("/dashboard/community")}
 								sx={{
@@ -166,117 +218,263 @@ function DashboardActivity() {
 									Community rank of {myRank?.totalUsers ?? "—"}
 								</Typography>
 							</Box>
-
 						</Stack>
 
 						<Divider sx={{ my: 2 }} />
 
-						<Typography variant="body2" color="text.secondary">
-							As you complete more missions, you&apos;ll see your activity and
-							impact grow here. Later we can add charts and detailed impact
-							breakdowns (CO₂, water and waste) over time.
+						<Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
+							<Chip label={`CO₂ saved: ${totals.co2Kg.toFixed(1)} kg`} variant="outlined" />
+							<Chip label={`Water saved: ${totals.waterL.toFixed(0)} L`} variant="outlined" />
+							<Chip label={`Waste saved: ${totals.wasteKg.toFixed(1)} kg`} variant="outlined" />
+						</Stack>
+
+						<Divider sx={{ my: 2 }} />
+
+						<Stack direction="row" spacing={1.5} flexWrap="wrap">
+							<Chip label={`Pending: ${pendingSubs.length}`} variant="outlined" />
+							<Chip label={`Rejected: ${rejectedSubs.length}`} variant="outlined" />
+						</Stack>
+
+						<Typography variant="body2" color="text.secondary" sx={{ mt: 2 }}>
+							Check-ins are created automatically when an admin approves your submission.
 						</Typography>
 					</CardContent>
 				</Card>
 
-				{/* Right: recent submissions list */}
-				<Card sx={{ flex: { xs: "unset", lg: 1.4 }, borderRadius: 4 }}>
+				{/* Right: tabbed lists */}
+				<Card sx={{ flex: { xs: "unset", lg: 1.4 }, borderRadius: 2 }}>
 					<CardContent>
-						<Typography variant="h6" sx={{ mb: 2 }}>
-							Recent submissions
+						<Typography variant="h6" sx={{ mb: 1 }}>
+							Activity
 						</Typography>
 
-						{submissions.length === 0 ? (
-							<Typography variant="body2" color="text.secondary">
-								You haven&apos;t submitted any missions yet. Complete a mission
-								from the Missions tab to see your history here.
-							</Typography>
-						) : (
-							<List dense sx={{ pt: 0 }}>
-								{submissions.slice(0, 10).map((sub) => {
-									const mission = sub.missionId || {};
-									const missionTitle = mission.title || "Mission";
-									const category = mission.category || "General";
-									const createdAt = sub.createdAt
-										? new Date(sub.createdAt).toLocaleString()
-										: "Unknown date";
+						<Tabs
+							value={tab}
+							onChange={(_e, v) => setTab(v)}
+							variant="scrollable"
+							scrollButtons="auto"
+							sx={{
+								mb: 2,
+								"& .MuiTab-root": { textTransform: "none", fontWeight: 700 },
+							}}
+						>
+							<Tab value="approved" label={`Approved (${checkins.length})`} />
+							<Tab value="pending" label={`Pending (${pendingSubs.length})`} />
+							<Tab value="rejected" label={`Rejected (${rejectedSubs.length})`} />
+						</Tabs>
 
-									const points =
-										sub.pointsAwarded ?? mission.points ?? null;
+						{/* ✅ APPROVED: keep your current working checkins list */}
+						{tab === "approved" && (
+							<>
+								<Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+									Recent check-ins (approved)
+								</Typography>
 
-									const chip = statusChipProps(sub.status);
+								{checkins.length === 0 ? (
+									<Typography variant="body2" color="text.secondary">
+										No approved missions yet. Once a submission is approved, it will appear here.
+									</Typography>
+								) : (
+									<List dense sx={{ pt: 0 }}>
+										{checkins.slice(0, 10).map((c) => {
+											const mission = c.missionId || {};
+											const title = mission.title || "Mission";
+											const category = mission.category || "General";
+											const when = c.createdAt
+												? new Date(c.createdAt).toLocaleString()
+												: "Unknown date";
+											const pts = c.points ?? 0;
 
-									const handleClick = () => {
-										if (mission._id) {
-											navigate(`/dashboard/missions/${mission._id}`);
-										}
-									};
-
-									return (
-										<ListItemButton
-											key={sub._id}
-											onClick={handleClick}
-											sx={{ px: 1, py: 0.5, borderRadius: 2 }}
-										>
-											<ListItemText
-												primaryTypographyProps={{
-													variant: "body2",
-													sx: { display: "flex", justifyContent: "space-between" },
-												}}
-												primary={
-													<>
-														<span>
-															{missionTitle}
-															{"  "}
-															<Chip
-																label={category}
-																size="small"
-																sx={{ ml: 1, fontSize: 10 }}
-															/>
-														</span>
-														<span style={{ display: "flex", gap: 8 }}>
-															{points != null && (
-																<Chip
-																	label={`+${points} pts`}
-																	size="small"
-																	sx={{
-																		fontSize: 10,
-																		bgcolor: "#ecfdf3",
-																		color: "#166534",
-																	}}
-																/>
-															)}
-															<Chip
-																size="small"
-																{...chip}
-																sx={{ fontSize: 10, ml: 1 }}
-															/>
-														</span>
-													</>
-												}
-												secondary={
-													<Stack spacing={0.4} sx={{ mt: 0.3 }}>
-														<Typography variant="body2" color="text.secondary">
-															{createdAt}
-														</Typography>
-
-														{sub.status === "rejected" && sub.rejectionReason && (
-															<Typography
-																variant="body2"
-																color="error"
-																sx={{ opacity: 0.9 }}
-															>
-																Reject Reason: {sub.rejectionReason}
+											return (
+												<ListItemButton
+													key={c._id}
+													onClick={() =>
+														mission._id && navigate(`/dashboard/missions/${mission._id}`)
+													}
+													sx={{ px: 1, py: 0.5, borderRadius: 2 }}
+												>
+													<ListItemText
+														primaryTypographyProps={{
+															variant: "body2",
+															sx: { display: "flex", justifyContent: "space-between" },
+														}}
+														primary={
+															<>
+																<span>
+																	{title}
+																	<Chip
+																		label={category}
+																		size="small"
+																		sx={{ ml: 1, fontSize: 10 }}
+																	/>
+																</span>
+																<span style={{ display: "flex", gap: 8 }}>
+																	<Chip
+																		label={`+${pts} pts`}
+																		size="small"
+																		sx={{
+																			fontSize: 10,
+																			bgcolor: "#ecfdf3",
+																			color: "#166534",
+																		}}
+																	/>
+																	<Chip
+																		label="Approved"
+																		size="small"
+																		color="success"
+																		variant="outlined"
+																		sx={{ fontSize: 10 }}
+																	/>
+																</span>
+															</>
+														}
+														secondary={
+															<Typography variant="body2" color="text.secondary" sx={{ mt: 0.3 }}>
+																{when}
 															</Typography>
-														)}
-													</Stack>
-												}
+														}
+													/>
+												</ListItemButton>
+											);
+										})}
+									</List>
+								)}
+							</>
+						)}
 
-											/>
-										</ListItemButton>
-									);
-								})}
-							</List>
+						{/* ✅ PENDING */}
+						{tab === "pending" && (
+							<>
+								<Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+									Submissions waiting for review
+								</Typography>
+
+								{pendingSubs.length === 0 ? (
+									<Typography variant="body2" color="text.secondary">
+										No pending submissions right now.
+									</Typography>
+								) : (
+									<List dense sx={{ pt: 0 }}>
+										{pendingSubs.slice(0, 10).map((s) => {
+											const mission = s.missionId || {};
+											const title = mission.title || "Mission";
+											const category = mission.category || "General";
+											const when = s.createdAt
+												? new Date(s.createdAt).toLocaleString()
+												: "Unknown date";
+
+											return (
+												<ListItemButton
+													key={s._id}
+													onClick={() => mission._id && navigate(`/dashboard/missions/${mission._id}`)}
+													sx={{ px: 1, py: 0.5, borderRadius: 2 }}
+												>
+													<ListItemText
+														primaryTypographyProps={{
+															variant: "body2",
+															sx: { display: "flex", justifyContent: "space-between" },
+														}}
+														primary={
+															<>
+																<span>
+																	{title}
+																	<Chip label={category} size="small" sx={{ ml: 1, fontSize: 10 }} />
+																</span>
+																<Chip
+																	label="Pending"
+																	size="small"
+																	color="warning"
+																	variant="outlined"
+																	sx={{ fontSize: 10 }}
+																/>
+															</>
+														}
+														secondary={
+															<Typography variant="body2" color="text.secondary" sx={{ mt: 0.3 }}>
+																{when}
+															</Typography>
+														}
+													/>
+												</ListItemButton>
+											);
+										})}
+									</List>
+								)}
+							</>
+						)}
+
+						{/* ✅ REJECTED (with reason) */}
+						{tab === "rejected" && (
+							<>
+								<Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+									Rejected submissions (with reason)
+								</Typography>
+
+								{rejectedSubs.length === 0 ? (
+									<Typography variant="body2" color="text.secondary">
+										No rejected submissions. Nice 👌
+									</Typography>
+								) : (
+									<List dense sx={{ pt: 0 }}>
+										{rejectedSubs.slice(0, 10).map((s) => {
+											const mission = s.missionId || {};
+											const title = mission.title || "Mission";
+											const category = mission.category || "General";
+											const when = s.createdAt
+												? new Date(s.createdAt).toLocaleString()
+												: "Unknown date";
+											const reason = getRejectionReason(s).trim();
+
+											return (
+												<ListItemButton
+													key={s._id}
+													onClick={() => mission._id && navigate(`/dashboard/missions/${mission._id}`)}
+													sx={{ px: 1, py: 0.75, borderRadius: 2 }}
+												>
+													<ListItemText
+														primaryTypographyProps={{
+															variant: "body2",
+															sx: { display: "flex", justifyContent: "space-between" },
+														}}
+														primary={
+															<>
+																<span>
+																	{title}
+																	<Chip label={category} size="small" sx={{ ml: 1, fontSize: 10 }} />
+																</span>
+																<Chip
+																	label="Rejected"
+																	size="small"
+																	color="error"
+																	variant="outlined"
+																	sx={{ fontSize: 10 }}
+																/>
+															</>
+														}
+														secondary={
+															<Box sx={{ mt: 0.3 }}>
+																<Typography variant="body2" color="text.secondary">
+																	{when}
+																</Typography>
+
+																<Typography
+																	variant="body2"
+																	sx={{ mt: 0.5, color: "error.main", fontWeight: 700 }}
+																>
+																	Reason:{" "}
+																	<span style={{ fontWeight: 500 }}>
+																		{reason || "No reason provided."}
+																	</span>
+																</Typography>
+															</Box>
+														}
+													/>
+												</ListItemButton>
+											);
+										})}
+									</List>
+								)}
+							</>
 						)}
 					</CardContent>
 				</Card>

@@ -30,7 +30,7 @@ function CommunityStatsStrip({ stats }) {
 	} = stats;
 
 	return (
-		<Card sx={{ borderRadius: 4 }}>
+		<Card sx={{ borderRadius: 2 }}>
 			<CardContent>
 				<Grid container spacing={3}>
 					<Grid item xs={6} md={2.4}>

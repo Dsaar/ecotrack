@@ -87,7 +87,7 @@ function DashboardFavoritesPage() {
 				Saved missions
 			</Typography>
 			<Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-				Quickly access missions you&apos;ve bookmarked to complete later.
+				Quickly access missions you have bookmarked to complete later.
 			</Typography>
 
 			{loading ? (
@@ -98,7 +98,7 @@ function DashboardFavoritesPage() {
 				<Typography variant="body2" color="text.secondary">
 					{q
 						? "No saved missions match your search."
-						: "You don&apos;t have any saved missions yet. Tap the star icon on a mission to save it here."}
+						: "You don't have any saved missions yet. Tap the star icon on a mission to save it here."}
 				</Typography>
 			) : (
 				<Stack spacing={2}>

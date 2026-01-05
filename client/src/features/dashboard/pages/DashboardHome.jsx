@@ -97,7 +97,7 @@ function DashboardHome() {
 				sx={{ mb: 3 }}
 			>
 				{/* Summary stats card */}
-				<Card sx={{ flex: 1, borderRadius: 4 }}>
+				<Card sx={{ flex: 1, borderRadius: 2 }}>
 					<CardContent>
 						<Typography variant="h6" sx={{ mb: 2 }}>
 							Summary
@@ -159,7 +159,7 @@ function DashboardHome() {
 				</Card>
 
 				{/* Highlight last submission, if any */}
-				<Card sx={{ flex: 1, borderRadius: 4 }}>
+				<Card sx={{ flex: 1, borderRadius: 2 }}>
 					<CardContent>
 						<Typography variant="h6" sx={{ mb: 2 }}>
 							Latest activity
@@ -230,7 +230,7 @@ function DashboardHome() {
 			</Stack>
 
 			{/* Optional: mini recent submissions list under the cards */}
-			<Card sx={{ borderRadius: 4 }}>
+			<Card sx={{ borderRadius: 2 }}>
 				<CardContent>
 					<Typography variant="h6" sx={{ mb: 2 }}>
 						Recent submissions

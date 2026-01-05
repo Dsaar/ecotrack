@@ -18,7 +18,7 @@ function CommunityGoalsCard({ stats }) {
 	const remaining = Math.max(0, goalPointsTarget - totalEcoPoints);
 
 	return (
-		<Card sx={{ borderRadius: 4 }}>
+		<Card sx={{ borderRadius: 2 }}>
 			<CardContent>
 				<Typography variant="h6" sx={{ mb: 1.5 }}>
 					Community goal

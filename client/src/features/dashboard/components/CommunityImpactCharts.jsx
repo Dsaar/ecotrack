@@ -95,7 +95,7 @@ function CommunityImpactCharts({ impactOverTime, categoryDistribution }) {
 			</Card>
 
 			{/* PIE CHART */}
-			<Card sx={{ borderRadius: 4 }}>
+			<Card sx={{ borderRadius: 2 }}>
 				<CardContent>
 					<Typography variant="h6" sx={{ mb: 1.5 }}>
 						Missions by category

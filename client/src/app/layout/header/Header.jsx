@@ -61,6 +61,12 @@ function Header() {
 		navigate("/missions");
 	};
 
+	// ✅ NEW: About page
+	const goAbout = () => {
+		closeDrawer();
+		navigate("/about");
+	};
+
 	const goDashboard = () => {
 		closeDrawer();
 		navigate("/dashboard");
@@ -135,6 +141,10 @@ function Header() {
 						</Button>
 						<Button sx={{ textTransform: "none" }} color="inherit" onClick={goImpact}>
 							Impact
+						</Button>
+						{/* ✅ NEW */}
+						<Button sx={{ textTransform: "none" }} color="inherit" onClick={goAbout}>
+							About
 						</Button>
 					</Stack>
 
@@ -230,6 +240,10 @@ function Header() {
 					</ListItemButton>
 					<ListItemButton onClick={goImpact}>
 						<ListItemText primary="Impact" />
+					</ListItemButton>
+					{/* ✅ NEW */}
+					<ListItemButton onClick={goAbout}>
+						<ListItemText primary="About" />
 					</ListItemButton>
 				</List>
 

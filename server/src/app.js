@@ -13,6 +13,7 @@ import adminSubmissionsRoutes from "./routes/admin/submissionAdminRoutes.js";
 import missionRoutes from "./routes/missionRoutes.js";
 import communityRoutes from "./routes/communityRoutes.js";
 import favoritesRoutes from "./routes/favoriteRoutes.js"; 
+import checkinRoutes from "./routes/checkinRoutes.js";
 
 
 
@@ -45,6 +46,7 @@ app.use("/api/admin/submissions", adminSubmissionsRoutes)
 app.use("/api/missions", missionRoutes);   
 app.use("/api/community", communityRoutes); 
 app.use("/api/favorites", favoritesRoutes);
+app.use("/api/checkins", checkinRoutes);
 
 
 

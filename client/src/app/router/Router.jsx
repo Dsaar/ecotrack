@@ -26,6 +26,8 @@ import ForgotPasswordPage from "../../features/auth/pages/ForgotPasswordPage.jsx
 import ResetPasswordPage from "../../features/auth/pages/ResetPasswordPage.jsx";
 import ChatPage from "../../features/dashboard/pages/ChatPage.jsx";
 import { SearchProvider } from "../providers/SearchProvider.jsx";
+import AboutPage from "../../features/landing/pages/AboutPage.jsx"; // <- adjust path if needed
+
 
 // ✅ Protect dashboard routes
 function ProtectedRoute({ children }) {
@@ -82,6 +84,14 @@ function Router() {
 				element={
 					<Layout>
 						<PublicMissionsPage />
+					</Layout>
+				}
+			/>
+			<Route
+				path="/about"
+				element={
+					<Layout>
+						<AboutPage />
 					</Layout>
 				}
 			/>
