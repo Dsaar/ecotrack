@@ -33,8 +33,9 @@ try {
 	registerChatSockets(io);
 
 	httpServer.listen(PORT, () => {
-		console.log(`🚀 API + Socket.IO running on http://localhost:${PORT}`);
+		console.log(`🚀 API + Socket.IO running on port ${PORT}`);
 	});
+
 } catch (error) {
 	console.error("❌ Failed to start server:");
 	console.error("Reason:", error.message);
