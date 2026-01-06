@@ -96,6 +96,15 @@ function DashboardFavoritesPage() {
 		});
 	}, [missions, q]);
 
+	const handleUnfavorite = (missionId) => {
+		setMissions((prev) => prev.filter((m) => String(m._id) !== String(missionId)));
+	};
+
+	// Wrap FavoriteButton so the grid can call it like a component
+	const FavoriteBtn = ({ missionId }) => (
+		<FavoriteButton missionId={missionId} onUnfavorite={handleUnfavorite} />
+	);
+
 	// ✅ Reset to first page when search changes or pageSize changes
 	useEffect(() => {
 		setPage(1);
@@ -109,6 +118,11 @@ function DashboardFavoritesPage() {
 	const startIndex = (safePage - 1) * pageSize;
 	const endIndex = Math.min(startIndex + pageSize, total);
 	const pagedMissions = filteredMissions.slice(startIndex, endIndex);
+
+	useEffect(() => {
+		const newPageCount = Math.max(1, Math.ceil(filteredMissions.length / pageSize));
+		if (page > newPageCount) setPage(newPageCount);
+	}, [filteredMissions.length, page, pageSize]);
 
 	return (
 		<Box sx={{ p: { xs: 2, md: 3 } }}>
@@ -198,7 +212,8 @@ function DashboardFavoritesPage() {
 						onTogglePublish={() => { }}
 						onEditPage={() => { }}
 						onDelete={() => { }}
-						FavoriteButtonComponent={FavoriteButton}
+						FavoriteButtonComponent={FavoriteBtn}
+
 					/>
 				</>
 			)}

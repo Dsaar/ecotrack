@@ -8,7 +8,7 @@ import { useUser } from "../../../app/providers/UserProvider.jsx";
 import { useSnackbar } from "../../../app/providers/SnackBarProvider.jsx";
 import { toggleFavoriteMission } from "../../../services/favoritesService.js";
 
-function FavoriteButton({ missionId }) {
+function FavoriteButton({ missionId, onUnfavorite }) {
 	const { user, refreshUser } = useUser();
 	const { showSuccess, showError } = useSnackbar();
 	const navigate = useNavigate();
@@ -18,7 +18,7 @@ function FavoriteButton({ missionId }) {
 		: false;
 
 	const handleToggle = async (e) => {
-		e.stopPropagation(); // so card click / navigation doesn’t trigger
+		e.stopPropagation();
 
 		if (!user) {
 			showError?.("Log in to save missions.");
@@ -26,15 +26,21 @@ function FavoriteButton({ missionId }) {
 			return;
 		}
 
+		// ✅ Optimistic: if we are removing from favorites, update the page immediately
+		if (isFavorited) {
+			onUnfavorite?.(missionId);
+		}
+
 		try {
 			await toggleFavoriteMission(missionId);
 			await refreshUser?.();
-			showSuccess?.(
-				isFavorited ? "Removed from favorites." : "Added to favorites."
-			);
+			showSuccess?.(isFavorited ? "Removed from favorites." : "Added to favorites.");
 		} catch (err) {
 			console.error("[FavoriteButton] Failed to toggle favorite", err);
 			showError?.("Could not update favorites. Please try again.");
+
+			// Optional: rollback UI if API fails (only relevant on favorites page)
+			// If you want rollback, we need an onRollback callback or refetch favorites.
 		}
 	};
 
