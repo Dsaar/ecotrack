@@ -23,10 +23,11 @@ try {
 	// 👇 Attach socket.io to same server/port
 	const io = new Server(httpServer, {
 		cors: {
-			origin: ["http://localhost:5173"],
+			origin: ["http://localhost:5173", "https://ecotrack-app.netlify.app"],
 			credentials: true,
 		},
 	});
+
 
 	// 👇 Register chat + presence handlers
 	registerChatSockets(io);

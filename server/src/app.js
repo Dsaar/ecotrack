@@ -26,7 +26,7 @@ console.log("[BOOT] app.js loaded", import.meta.url, "pid:", process.pid);
 app.use(helmet());
 app.use(
 	cors({
-		origin: ["http://localhost:5173"], // allow your frontend
+		origin: ["http://localhost:5173", "https://ecotrack-app.netlify.app"], // allow your frontend
 		credentials: true,
 	})
 );
