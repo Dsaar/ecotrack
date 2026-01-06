@@ -23,6 +23,11 @@ import {
 	useMediaQuery,
 	useTheme,
 	Divider,
+	FormControl,
+	InputLabel,
+	Select,
+	MenuItem,
+	Pagination,
 } from "@mui/material";
 import DeleteIcon from "@mui/icons-material/Delete";
 
@@ -164,6 +169,27 @@ export default function AdminUsersPage() {
 		);
 	}
 
+	// ✅ Pagination (same pattern as Missions/Favorites)
+	const PAGE_SIZE_OPTIONS = [6, 12, 24];
+
+	const [page, setPage] = useState(1);
+	const [pageSize, setPageSize] = useState(6);
+
+	// reset to page 1 when search changes or page size changes
+	useEffect(() => {
+		setPage(1);
+	}, [q, pageSize]);
+
+	const total = filteredUsers.length;
+	const pageCount = Math.max(1, Math.ceil(total / pageSize));
+	const safePage = Math.min(page, pageCount);
+
+	const startIndex = (safePage - 1) * pageSize;
+	const endIndex = Math.min(startIndex + pageSize, total);
+
+	const pagedUsers = filteredUsers.slice(startIndex, endIndex);
+
+
 	return (
 		<Box sx={{ p: { xs: 2, md: 3 }, maxWidth: 1100 }}>
 			<Stack spacing={0.5} sx={{ mb: 2 }}>
@@ -182,6 +208,61 @@ export default function AdminUsersPage() {
 				)}
 			</Stack>
 
+			{/* ✅ Pagination controls */}
+			{!loading && filteredUsers.length > 0 && (
+				<Stack
+					direction={{ xs: "column", sm: "row" }}
+					alignItems={{ xs: "stretch", sm: "center" }}
+					justifyContent="space-between"
+					spacing={1.25}
+					sx={{ mb: 1.5 }}
+				>
+					<Typography variant="caption" color="text.secondary">
+						Showing {startIndex + 1}-{endIndex} of {total}
+						{q ? ` for “${query}”` : ""}
+					</Typography>
+
+					<Stack
+						direction={{ xs: "column", sm: "row" }}
+						spacing={1.25}
+						alignItems={{ xs: "stretch", sm: "center" }}
+						justifyContent="flex-end"
+					>
+						<FormControl size="small" sx={{ minWidth: { xs: "100%", sm: 160 } }}>
+							<InputLabel id="admin-users-page-size-label">Per page</InputLabel>
+							<Select
+								labelId="admin-users-page-size-label"
+								value={pageSize}
+								label="Per page"
+								onChange={(e) => setPageSize(Number(e.target.value))}
+							>
+								{PAGE_SIZE_OPTIONS.map((n) => (
+									<MenuItem key={n} value={n}>
+										{n}
+									</MenuItem>
+								))}
+							</Select>
+						</FormControl>
+
+						<Box
+							sx={{
+								display: "flex",
+								justifyContent: { xs: "center", sm: "flex-end" },
+							}}
+						>
+							<Pagination
+								count={pageCount}
+								page={safePage}
+								onChange={(_, value) => setPage(value)}
+								color="primary"
+								shape="rounded"
+							/>
+						</Box>
+					</Stack>
+				</Stack>
+			)}
+
+
 			<Card sx={{ borderRadius: 4 }}>
 				<CardContent sx={{ p: { xs: 1.5, sm: 2 } }}>
 					{loading ? (
@@ -193,7 +274,7 @@ export default function AdminUsersPage() {
 					) : isMobile ? (
 						// ✅ Mobile: cards
 						<Stack spacing={1.25}>
-							{filteredUsers.map((u) => {
+							{pagedUsers.map((u) => {
 								const name = u?.name?.first
 									? `${u.name.first} ${u.name.last || ""}`
 									: "—";
@@ -275,7 +356,7 @@ export default function AdminUsersPage() {
 								</TableHead>
 
 								<TableBody>
-									{filteredUsers.map((u) => (
+									{pagedUsers.map((u) => (
 										<TableRow key={u._id}>
 											<TableCell>
 												{u?.name?.first ? `${u.name.first} ${u.name.last || ""}` : "—"}
