@@ -1,50 +1,155 @@
+// server/seed/data/userSeed.js
 import bcrypt from "bcryptjs";
 
 export const usersSeed = async () => {
   const salt = await bcrypt.genSalt(10);
+  const pw = await bcrypt.hash("Admin#1234", salt);
 
-  return [
+  // 10 users total, 2 admins
+  const base = [
     {
-      name: { first: "Admin", middle: "", last: "User" },
+      name: { first: "Admin", middle: "", last: "One" },
       email: "admin@example.com",
-      passwordHash: await bcrypt.hash("Admin#1234", salt),
-      phone: "050-0000000",
+      passwordHash: pw,
+      phone: "050-0000001",
       address: {
         country: "Israel",
         city: "Tel Aviv",
         street: "Admin St",
         houseNumber: 1,
         zip: 11111,
-        state: ""
+        state: "",
       },
-      avatarUrl: {
-        url: "https://picsum.photos/200?admin",
-        alt: "admin avatar"
-      },
+      avatarUrl: { url: "https://picsum.photos/200?admin1", alt: "admin avatar" },
       isAdmin: true,
       points: 0,
-      favorites: { missions: [], submissions: [] }
+      favorites: { missions: [], submissions: [] },
+    },
+    {
+      name: { first: "Admin", middle: "", last: "Two" },
+      email: "admin2@example.com",
+      passwordHash: pw,
+      phone: "050-0000002",
+      address: {
+        country: "Israel",
+        city: "Tel Aviv",
+        street: "Admin St",
+        houseNumber: 2,
+        zip: 11112,
+        state: "",
+      },
+      avatarUrl: { url: "https://picsum.photos/200?admin2", alt: "admin avatar" },
+      isAdmin: true,
+      points: 0,
+      favorites: { missions: [], submissions: [] },
     },
     {
       name: { first: "Daniel", middle: "", last: "Saar" },
       email: "user1@example.com",
-      passwordHash: await bcrypt.hash("Admin#1234", salt),
-      phone: "050-1234567",
+      passwordHash: pw,
+      phone: "050-1234501",
       address: {
         country: "Israel",
         city: "Tel Aviv",
         street: "Herzl",
         houseNumber: 10,
         zip: 12345,
-        state: ""
+        state: "",
       },
-      avatarUrl: {
-        url: "https://picsum.photos/200?user1",
-        alt: "user avatar"
-      },
+      avatarUrl: { url: "https://picsum.photos/200?user1", alt: "user avatar" },
       isAdmin: false,
       points: 0,
-      favorites: { missions: [], submissions: [] }
-    }
+      favorites: { missions: [], submissions: [] },
+    },
+    {
+      name: { first: "Sarah", middle: "", last: "Green" },
+      email: "user2@example.com",
+      passwordHash: pw,
+      phone: "050-1234502",
+      address: { country: "Israel", city: "Haifa", street: "Hagana", houseNumber: 7, zip: 31000, state: "" },
+      avatarUrl: { url: "https://picsum.photos/200?user2", alt: "user avatar" },
+      isAdmin: false,
+      points: 0,
+      favorites: { missions: [], submissions: [] },
+    },
+    {
+      name: { first: "Noam", middle: "", last: "Levi" },
+      email: "user3@example.com",
+      passwordHash: pw,
+      phone: "050-1234503",
+      address: { country: "Israel", city: "Jerusalem", street: "King George", houseNumber: 15, zip: 91000, state: "" },
+      avatarUrl: { url: "https://picsum.photos/200?user3", alt: "user avatar" },
+      isAdmin: false,
+      points: 0,
+      favorites: { missions: [], submissions: [] },
+    },
+    {
+      name: { first: "Maya", middle: "", last: "Cohen" },
+      email: "user4@example.com",
+      passwordHash: pw,
+      phone: "050-1234504",
+      address: { country: "Israel", city: "Rishon", street: "Rothschild", houseNumber: 3, zip: 75200, state: "" },
+      avatarUrl: { url: "https://picsum.photos/200?user4", alt: "user avatar" },
+      isAdmin: false,
+      points: 0,
+      favorites: { missions: [], submissions: [] },
+    },
+    {
+      name: { first: "Omer", middle: "", last: "Katz" },
+      email: "user5@example.com",
+      passwordHash: pw,
+      phone: "050-1234505",
+      address: { country: "Israel", city: "Beer Sheva", street: "Ben Gurion", houseNumber: 21, zip: 84100, state: "" },
+      avatarUrl: { url: "https://picsum.photos/200?user5", alt: "user avatar" },
+      isAdmin: false,
+      points: 0,
+      favorites: { missions: [], submissions: [] },
+    },
+    {
+      name: { first: "Lior", middle: "", last: "Bar" },
+      email: "user6@example.com",
+      passwordHash: pw,
+      phone: "050-1234506",
+      address: { country: "Israel", city: "Netanya", street: "Dizengoff", houseNumber: 12, zip: 42500, state: "" },
+      avatarUrl: { url: "https://picsum.photos/200?user6", alt: "user avatar" },
+      isAdmin: false,
+      points: 0,
+      favorites: { missions: [], submissions: [] },
+    },
+    {
+      name: { first: "Dana", middle: "", last: "Mor" },
+      email: "user7@example.com",
+      passwordHash: pw,
+      phone: "050-1234507",
+      address: { country: "Israel", city: "Holon", street: "Weizmann", houseNumber: 6, zip: 58300, state: "" },
+      avatarUrl: { url: "https://picsum.photos/200?user7", alt: "user avatar" },
+      isAdmin: false,
+      points: 0,
+      favorites: { missions: [], submissions: [] },
+    },
+    {
+      name: { first: "Eitan", middle: "", last: "Shani" },
+      email: "user8@example.com",
+      passwordHash: pw,
+      phone: "050-1234508",
+      address: { country: "Israel", city: "Ashdod", street: "HaAtzmaut", houseNumber: 9, zip: 77100, state: "" },
+      avatarUrl: { url: "https://picsum.photos/200?user8", alt: "user avatar" },
+      isAdmin: false,
+      points: 0,
+      favorites: { missions: [], submissions: [] },
+    },
+    {
+      name: { first: "Yael", middle: "", last: "Peretz" },
+      email: "user9@example.com",
+      passwordHash: pw,
+      phone: "050-1234509",
+      address: { country: "Israel", city: "Kfar Saba", street: "Sderot", houseNumber: 4, zip: 44300, state: "" },
+      avatarUrl: { url: "https://picsum.photos/200?user9", alt: "user avatar" },
+      isAdmin: false,
+      points: 0,
+      favorites: { missions: [], submissions: [] },
+    },
   ];
+
+  return base;
 };
