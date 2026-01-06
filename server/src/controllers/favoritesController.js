@@ -50,7 +50,7 @@ export const listFavoriteMissions = async (req, res) => {
 		const user = await User.findById(req.user.id)
 			.populate(
 				"favorites.missions",
-				"title summary description category difficulty estImpact points slug"
+				"title summary description category difficulty estImpact points slug imageUrl"
 			)
 			.select("favorites");
 

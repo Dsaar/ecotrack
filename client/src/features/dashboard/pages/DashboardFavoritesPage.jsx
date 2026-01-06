@@ -1,13 +1,33 @@
-// src/features/missions/pages/DashboardFavoritesPage.jsx
+// client/src/features/dashboard/pages/DashboardFavoritesPage.jsx
 import { useEffect, useMemo, useState } from "react";
-import { Box, Stack, Typography } from "@mui/material";
+import {
+	Box,
+	Typography,
+	Stack,
+	FormControl,
+	InputLabel,
+	Select,
+	MenuItem,
+	Pagination,
+} from "@mui/material";
+import { useNavigate } from "react-router-dom";
+
 import { getFavoriteMissions } from "../../../services/favoritesService.js";
-import MissionDescriptionCard from "../components/MissionDescriptionCard.jsx";
 import { useSearch } from "../../../app/providers/SearchProvider.jsx";
+import FavoriteButton from "../../missions/components/FavoriteButton.jsx";
+import DashboardMissionsGrid from "../components/DashboardMissionsGrid.jsx";
+
+const PAGE_SIZE_OPTIONS = [6, 12, 24];
 
 function DashboardFavoritesPage() {
+	const navigate = useNavigate();
+
 	const [missions, setMissions] = useState([]);
 	const [loading, setLoading] = useState(true);
+
+	// --- Pagination state ---
+	const [page, setPage] = useState(1);
+	const [pageSize, setPageSize] = useState(6);
 
 	const { query, setQuery } = useSearch();
 	const q = (query || "").trim().toLowerCase();
@@ -20,32 +40,27 @@ function DashboardFavoritesPage() {
 				setLoading(true);
 				const res = await getFavoriteMissions();
 
-				// Backend now returns an array: [ { _id, title, ... }, ... ]
-				let data = res.data;
+				// service might return either:
+				// - axios response object with res.data as array
+				// - direct array (depending on your service implementation)
+				let data = res?.data ?? res;
 
-				// If for some reason it's wrapped in an object, unwrap common shapes
 				if (Array.isArray(data)) {
 					// ok
-				} else if (Array.isArray(data.missions)) {
+				} else if (Array.isArray(data?.missions)) {
 					data = data.missions;
-				} else if (Array.isArray(data.favorites?.missions)) {
+				} else if (Array.isArray(data?.favorites?.missions)) {
 					data = data.favorites.missions;
 				} else {
 					data = [];
 				}
 
-				if (!cancelled) {
-					setMissions(data);
-				}
+				if (!cancelled) setMissions(data);
 			} catch (err) {
 				console.error("[DashboardFavoritesPage] Failed to load favorites:", err);
-				if (!cancelled) {
-					setMissions([]);
-				}
+				if (!cancelled) setMissions([]);
 			} finally {
-				if (!cancelled) {
-					setLoading(false);
-				}
+				if (!cancelled) setLoading(false);
 			}
 		}
 
@@ -55,7 +70,7 @@ function DashboardFavoritesPage() {
 		};
 	}, []);
 
-	// ✅ Optional: clear global search when leaving favorites
+	// ✅ cleanup search query when leaving the page
 	useEffect(() => {
 		return () => setQuery("");
 	}, [setQuery]);
@@ -81,11 +96,26 @@ function DashboardFavoritesPage() {
 		});
 	}, [missions, q]);
 
+	// ✅ Reset to first page when search changes or pageSize changes
+	useEffect(() => {
+		setPage(1);
+	}, [q, pageSize]);
+
+	// ✅ Pagination calculations
+	const total = filteredMissions.length;
+	const pageCount = Math.max(1, Math.ceil(total / pageSize));
+	const safePage = Math.min(page, pageCount);
+
+	const startIndex = (safePage - 1) * pageSize;
+	const endIndex = Math.min(startIndex + pageSize, total);
+	const pagedMissions = filteredMissions.slice(startIndex, endIndex);
+
 	return (
 		<Box sx={{ p: { xs: 2, md: 3 } }}>
 			<Typography variant="h4" sx={{ fontWeight: 600, mb: 1 }}>
 				Saved missions
 			</Typography>
+
 			<Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
 				Quickly access missions you have bookmarked to complete later.
 			</Typography>
@@ -101,11 +131,76 @@ function DashboardFavoritesPage() {
 						: "You don't have any saved missions yet. Tap the star icon on a mission to save it here."}
 				</Typography>
 			) : (
-				<Stack spacing={2}>
-					{filteredMissions.map((m) => (
-						<MissionDescriptionCard key={m._id} mission={m} />
-					))}
-				</Stack>
+				<>
+					{/* ✅ Pagination controls */}
+					<Stack
+						direction={{ xs: "column", sm: "row" }}
+						spacing={2}
+						alignItems={{ xs: "stretch", sm: "center" }}
+						justifyContent="space-between"
+						sx={{ mb: 2 }}
+					>
+						<Typography variant="body2" color="text.secondary">
+							{`Showing ${startIndex + 1}-${endIndex} of ${total}`}
+						</Typography>
+
+								<Stack
+									direction={{ xs: "column", sm: "row" }}
+									spacing={1.5}
+									alignItems={{ xs: "stretch", sm: "center" }}
+									justifyContent="flex-end"
+									sx={{ width: { xs: "100%", sm: "auto" } }}
+								>
+									<FormControl
+										size="small"
+										sx={{
+											minWidth: { xs: "100%", sm: 160 },
+										}}
+									>
+										<InputLabel id="page-size-label">Per page</InputLabel>
+										<Select
+											labelId="page-size-label"
+											value={pageSize}
+											label="Per page"
+											onChange={(e) => setPageSize(Number(e.target.value))}
+										>
+											{PAGE_SIZE_OPTIONS.map((n) => (
+												<MenuItem key={n} value={n}>
+													{n}
+												</MenuItem>
+											))}
+										</Select>
+									</FormControl>
+
+									<Box
+										sx={{
+											display: "flex",
+											justifyContent: { xs: "center", sm: "flex-end" },
+											width: { xs: "100%", sm: "auto" },
+										}}
+									>
+										<Pagination
+											count={pageCount}
+											page={safePage}
+											onChange={(_, value) => setPage(value)}
+											color="primary"
+											shape="rounded"
+										/>
+									</Box>
+								</Stack>
+
+					</Stack>
+
+					<DashboardMissionsGrid
+						missions={pagedMissions}
+						isAdmin={false}
+						onOpenDetails={(id) => navigate(`/dashboard/missions/${id}`)}
+						onTogglePublish={() => { }}
+						onEditPage={() => { }}
+						onDelete={() => { }}
+						FavoriteButtonComponent={FavoriteButton}
+					/>
+				</>
 			)}
 		</Box>
 	);

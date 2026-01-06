@@ -9,6 +9,11 @@ import {
 	DialogTitle,
 	Stack,
 	Typography,
+	FormControl,
+	InputLabel,
+	Select,
+	MenuItem,
+	Pagination,
 } from "@mui/material";
 import { useNavigate } from "react-router-dom";
 
@@ -38,17 +43,23 @@ const CATEGORY_OPTIONS = [
 ];
 const DIFFICULTY_OPTIONS = ["Easy", "Medium", "Hard"];
 
+const PAGE_SIZE_OPTIONS = [6, 12, 24];
+
 function DashboardMissions() {
 	const navigate = useNavigate();
 	const { user } = useUser();
 	const { showSuccess, showError } = useSnackbar();
-	const { query, setQuery } = useSearch(); // ✅ hook INSIDE component
+	const { query, setQuery } = useSearch();
 
 	const isAdmin = !!user?.isAdmin;
 
 	const [missions, setMissions] = useState([]);
 	const [loading, setLoading] = useState(true);
 	const [error, setError] = useState("");
+
+	// --- Pagination state ---
+	const [page, setPage] = useState(1); // 1-based for MUI Pagination
+	const [pageSize, setPageSize] = useState(6);
 
 	// --- Edit dialog state ---
 	const [editOpen, setEditOpen] = useState(false);
@@ -136,9 +147,7 @@ function DashboardMissions() {
 
 			// optimistic UI
 			setMissions((prev) =>
-				prev.map((m) =>
-					m._id === mission._id ? { ...m, isPublished: next } : m
-				)
+				prev.map((m) => (m._id === mission._id ? { ...m, isPublished: next } : m))
 			);
 
 			await patchMission(mission._id, { isPublished: next });
@@ -227,7 +236,6 @@ function DashboardMissions() {
 			const summary = (m.summary || "").toLowerCase();
 			const category = (m.category || "").toLowerCase();
 			const difficulty = (m.difficulty || "").toLowerCase();
-
 			const tags = Array.isArray(m.tags) ? m.tags.join(" ").toLowerCase() : "";
 
 			return (
@@ -239,6 +247,20 @@ function DashboardMissions() {
 			);
 		});
 	}, [missions, q]);
+
+	// ✅ Reset to first page when search changes or pageSize changes
+	useEffect(() => {
+		setPage(1);
+	}, [q, pageSize]);
+
+	// ✅ Pagination calculations
+	const total = filteredMissions.length;
+	const pageCount = Math.max(1, Math.ceil(total / pageSize));
+	const safePage = Math.min(page, pageCount);
+
+	const startIndex = (safePage - 1) * pageSize;
+	const endIndex = Math.min(startIndex + pageSize, total);
+	const pagedMissions = filteredMissions.slice(startIndex, endIndex);
 
 	if (loading) {
 		return (
@@ -289,9 +311,68 @@ function DashboardMissions() {
 				</Typography>
 			)}
 
-			{/* ✅ IMPORTANT: use filteredMissions here */}
+			{/* ✅ Pagination controls */}
+			<Stack
+				direction={{ xs: "column", sm: "row" }}
+				spacing={2}
+				alignItems={{ xs: "stretch", sm: "center" }}
+				justifyContent="space-between"
+				sx={{ mb: 2 }}
+			>
+				<Typography variant="body2" color="text.secondary">
+					{total === 0 ? "No missions to show." : `Showing ${startIndex + 1}-${endIndex} of ${total}`}
+				</Typography>
+
+				<Stack
+					direction={{ xs: "column", sm: "row" }}
+					spacing={1.5}
+					alignItems={{ xs: "stretch", sm: "center" }}
+					justifyContent="flex-end"
+					sx={{ width: { xs: "100%", sm: "auto" } }}
+				>
+					<FormControl
+						size="small"
+						sx={{
+							minWidth: { xs: "100%", sm: 160 },
+						}}
+					>
+						<InputLabel id="page-size-label">Per page</InputLabel>
+						<Select
+							labelId="page-size-label"
+							value={pageSize}
+							label="Per page"
+							onChange={(e) => setPageSize(Number(e.target.value))}
+						>
+							{PAGE_SIZE_OPTIONS.map((n) => (
+								<MenuItem key={n} value={n}>
+									{n}
+								</MenuItem>
+							))}
+						</Select>
+					</FormControl>
+
+					<Box
+						sx={{
+							display: "flex",
+							justifyContent: { xs: "center", sm: "flex-end" },
+							width: { xs: "100%", sm: "auto" },
+						}}
+					>
+						<Pagination
+							count={pageCount}
+							page={safePage}
+							onChange={(_, value) => setPage(value)}
+							color="primary"
+							shape="rounded"
+						/>
+					</Box>
+				</Stack>
+
+			</Stack>
+
+			{/* ✅ IMPORTANT: pass the paged missions */}
 			<DashboardMissionsGrid
-				missions={filteredMissions}
+				missions={pagedMissions}
 				isAdmin={isAdmin}
 				onOpenDetails={(id) => navigate(`/dashboard/missions/${id}`)}
 				onEdit={(mission) => openEdit(mission)}
@@ -315,16 +396,11 @@ function DashboardMissions() {
 				<DialogTitle>Delete mission?</DialogTitle>
 				<DialogContent>
 					<Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-						This will permanently delete{" "}
-						<b>{deleteTarget?.title || "this mission"}</b>.
+						This will permanently delete <b>{deleteTarget?.title || "this mission"}</b>.
 					</Typography>
 				</DialogContent>
 				<DialogActions>
-					<Button
-						onClick={closeDelete}
-						disabled={deleting}
-						sx={{ textTransform: "none" }}
-					>
+					<Button onClick={closeDelete} disabled={deleting} sx={{ textTransform: "none" }}>
 						Cancel
 					</Button>
 					<Button
