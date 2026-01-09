@@ -39,29 +39,11 @@ function Header() {
 	const closeDrawer = () => setMobileOpen(false);
 	const toggleDrawer = () => setMobileOpen((v) => !v);
 
-	// ✅ Impact behavior:
-	// - If you are already on "/", scroll to #impact
-	// - Otherwise navigate to "/#impact"
-	const goImpact = () => {
-		closeDrawer();
-
-		if (location.pathname === "/") {
-			const el = document.querySelector("#impact");
-			if (el) {
-				el.scrollIntoView({ behavior: "smooth", block: "start" });
-			}
-			return;
-		}
-
-		navigate("/#impact");
-	};
-
 	const goMissions = () => {
 		closeDrawer();
 		navigate("/missions");
 	};
-
-	// ✅ NEW: About page
+	
 	const goAbout = () => {
 		closeDrawer();
 		navigate("/about");
@@ -139,10 +121,6 @@ function Header() {
 						<Button sx={{ textTransform: "none" }} color="inherit" onClick={goMissions}>
 							Missions
 						</Button>
-						<Button sx={{ textTransform: "none" }} color="inherit" onClick={goImpact}>
-							Impact
-						</Button>
-						{/* ✅ NEW */}
 						<Button sx={{ textTransform: "none" }} color="inherit" onClick={goAbout}>
 							About
 						</Button>
@@ -238,10 +216,6 @@ function Header() {
 					<ListItemButton onClick={goMissions}>
 						<ListItemText primary="Missions" />
 					</ListItemButton>
-					<ListItemButton onClick={goImpact}>
-						<ListItemText primary="Impact" />
-					</ListItemButton>
-					{/* ✅ NEW */}
 					<ListItemButton onClick={goAbout}>
 						<ListItemText primary="About" />
 					</ListItemButton>

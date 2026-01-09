@@ -112,6 +112,7 @@ export default function AboutPage() {
 								inset: -20,
 								pointerEvents: "none",
 								opacity: 0.9,
+								borderRadius:2,
 								background:
 									"radial-gradient(900px 380px at 10% -20%, rgba(34,197,94,0.20), transparent 60%)," +
 									"radial-gradient(700px 320px at 90% 0%, rgba(59,130,246,0.16), transparent 55%)," +
