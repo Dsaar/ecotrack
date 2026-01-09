@@ -1,10 +1,5 @@
 // src/app/providers/CustomThemeProvider.jsx
-import {
-	createContext,
-	useContext,
-	useMemo,
-	useState,
-} from "react";
+import { createContext, useContext, useMemo, useState } from "react";
 import { ThemeProvider, CssBaseline, createTheme } from "@mui/material";
 
 const ThemeModeContext = createContext(null);
@@ -35,23 +30,78 @@ function CustomThemeProvider({ children }) {
 		});
 	};
 
-	const theme = useMemo(
-		() =>
-			createTheme({
-				palette: {
-					mode,
-					primary: { main: "#166534" },
-					background: {
-						default: mode === "light" ? "#f3f4f6" : "#020617",
-						paper: mode === "light" ? "#ffffff" : "#0b1120",
+	const theme = useMemo(() => {
+		const isLight = mode === "light";
+
+		return createTheme({
+			palette: {
+				mode,
+				primary: { main: "#166534" },
+
+				background: {
+					default: isLight ? "#f7f8fa" : "#020617",
+					paper: isLight ? "#ffffff" : "#0b1120",
+				},
+
+				// ✅ Add your tones globally (works everywhere)
+				tones: {
+					green: {
+						bg: isLight ? "rgba(22,101,52,0.10)" : "rgba(34,197,94,0.14)",
+						fg: isLight ? "#166534" : "#22c55e",
+					},
+					blue: {
+						bg: isLight ? "rgba(59,130,246,0.12)" : "rgba(59,130,246,0.16)",
+						fg: isLight ? "#1d4ed8" : "#60a5fa",
+					},
+					amber: {
+						bg: isLight ? "rgba(245,158,11,0.14)" : "rgba(245,158,11,0.18)",
+						fg: isLight ? "#b45309" : "#fbbf24",
+					},
+					indigo: {
+						bg: "rgba(99,102,241,0.14)",
+						fg: "#4338ca",
+					},
+					rejected: {
+						bg: "rgba(244,63,94,0.14)",   // soft rose background
+						fg: "#be123c",                // deep rose text
+						border: "rgba(244,63,94,0.32)",
+					},
+
+				},
+			},
+
+			shape: { borderRadius: 16 },
+
+			components: {
+				// Make UI feel more consistent across the whole app
+				MuiCard: {
+					styleOverrides: {
+						root: ({ theme }) => ({
+							borderRadius: 16,
+							border: `1px solid ${theme.palette.divider}`,
+							backgroundImage: "none",
+						}),
 					},
 				},
-				shape: {
-					borderRadius: 16,
+				MuiButton: {
+					styleOverrides: {
+						root: {
+							textTransform: "none",
+							borderRadius: 999,
+						},
+					},
 				},
-			}),
-		[mode]
-	);
+				MuiChip: {
+					styleOverrides: {
+						root: {
+							borderRadius: 999,
+							fontWeight: 600,
+						},
+					},
+				},
+			},
+		});
+	}, [mode]);
 
 	const value = { mode, toggleColorMode };
 

@@ -189,9 +189,38 @@ export default function AdminUsersPage() {
 
 	const pagedUsers = filteredUsers.slice(startIndex, endIndex);
 
-
 	return (
-		<Box sx={{ p: { xs: 2, md: 3 }, maxWidth: 1100 }}>
+		<Box
+			sx={{
+				position: "relative",
+				p: { xs: 2, md: 3 },
+				maxWidth: 1100,
+
+				// ✅ Top overlay (theme-driven, fades out smoothly)
+				"&:before": {
+					content: '""',
+					position: "absolute",
+					borderRadius:2,
+					top: 0,
+					left: 0,
+					right: 0,
+					height: { xs: 180, md: 220 },
+					background: `linear-gradient(
+						180deg,
+						${theme.palette.tones?.blue?.bg ?? "rgba(59,130,246,0.12)"} 0%,
+						${theme.palette.tones?.green?.bg ?? "rgba(22,101,52,0.10)"} 45%,
+						transparent 85%
+					)`,
+					maskImage:
+						"linear-gradient(to bottom, rgba(0,0,0,1) 0%, rgba(0,0,0,1) 60%, rgba(0,0,0,0) 100%)",
+					WebkitMaskImage:
+						"linear-gradient(to bottom, rgba(0,0,0,1) 0%, rgba(0,0,0,1) 60%, rgba(0,0,0,0) 100%)",
+					pointerEvents: "none",
+					zIndex: 0,
+				},
+				"& > *": { position: "relative", zIndex: 1 },
+			}}
+		>
 			<Stack spacing={0.5} sx={{ mb: 2 }}>
 				<Typography variant="h4" sx={{ fontWeight: 700 }}>
 					Admin CRM
@@ -244,12 +273,7 @@ export default function AdminUsersPage() {
 							</Select>
 						</FormControl>
 
-						<Box
-							sx={{
-								display: "flex",
-								justifyContent: { xs: "center", sm: "flex-end" },
-							}}
-						>
+						<Box sx={{ display: "flex", justifyContent: { xs: "center", sm: "flex-end" } }}>
 							<Pagination
 								count={pageCount}
 								page={safePage}
@@ -261,7 +285,6 @@ export default function AdminUsersPage() {
 					</Stack>
 				</Stack>
 			)}
-
 
 			<Card sx={{ borderRadius: 4 }}>
 				<CardContent sx={{ p: { xs: 1.5, sm: 2 } }}>
@@ -281,11 +304,7 @@ export default function AdminUsersPage() {
 								const isSelf = String(user?._id) === String(u._id);
 
 								return (
-									<Card
-										key={u._id}
-										variant="outlined"
-										sx={{ borderRadius: 3, overflow: "hidden" }}
-									>
+									<Card key={u._id} variant="outlined" sx={{ borderRadius: 3, overflow: "hidden" }}>
 										<CardContent sx={{ p: 1.5 }}>
 											<Stack spacing={1}>
 												<Stack direction="row" alignItems="center" justifyContent="space-between">
@@ -300,11 +319,7 @@ export default function AdminUsersPage() {
 
 													<Tooltip title={isSelf ? "You can’t delete yourself" : "Delete user"}>
 														<span>
-															<IconButton
-																onClick={() => openDelete(u)}
-																disabled={isSelf}
-																size="small"
-															>
+															<IconButton onClick={() => openDelete(u)} disabled={isSelf} size="small">
 																<DeleteIcon fontSize="small" />
 															</IconButton>
 														</span>

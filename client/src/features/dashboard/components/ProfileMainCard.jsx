@@ -115,7 +115,7 @@ function ProfileMainCard() {
 			: "Not provided";
 
 	return (
-		<Card sx={{ mb: 3, borderRadius: 4 }}>
+		<Card sx={{ mb: 3, borderRadius: 2 }}>
 			<CardContent>
 				<ProfileHeader
 					fullName={fullName}

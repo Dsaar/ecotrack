@@ -61,7 +61,7 @@ function CommunityImpactCard() {
 	const { totalEcoPoints, totalSubmissions, totalUsers } = mockCommunityStats;
 
 	return (
-		<Card sx={{ borderRadius: 4 }}>
+		<Card sx={{ borderRadius: 2 }}>
 			<CardContent>
 				<Typography variant="h6" sx={{ mb: 2 }}>
 					EcoTrack community impact

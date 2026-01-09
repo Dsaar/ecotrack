@@ -37,14 +37,6 @@ import {
 } from "../../../../services/adminSubmissionsService.js";
 import { useUser } from "../../../../app/providers/UserProvider.jsx";
 
-function StatusChip({ status }) {
-	if (status === "approved")
-		return <Chip size="small" label="Approved" color="success" variant="outlined" />;
-	if (status === "rejected")
-		return <Chip size="small" label="Rejected" color="error" variant="outlined" />;
-	return <Chip size="small" label="Pending" variant="outlined" />;
-}
-
 function isLikelyImageUrl(url = "") {
 	return /\.(png|jpe?g|gif|webp|bmp|svg)$/i.test(url) || url.includes("picsum.photos");
 }
@@ -82,6 +74,28 @@ export default function AdminSubmissionsPage() {
 	const closeView = () => {
 		setViewOpen(false);
 		setViewTarget(null);
+	};
+
+	// ---------- tonal helpers (theme-driven) ----------
+	const toneChipSx = (toneKey) => {
+		const tone = theme.palette?.tones?.[toneKey] || {};
+		return {
+			bgcolor: tone.bg || "transparent",
+			color: tone.fg || "text.primary",
+			border: "1px solid",
+			borderColor: tone.border || "transparent",
+			fontWeight: 800,
+		};
+	};
+
+	const StatusChip = ({ status }) => {
+		if (status === "approved") {
+			return <Chip size="small" label="Approved" sx={toneChipSx("green")} />;
+		}
+		if (status === "rejected") {
+			return <Chip size="small" label="Rejected" sx={toneChipSx("rejected")} />;
+		}
+		return <Chip size="small" label="Pending" sx={toneChipSx("amber")} />;
 	};
 
 	const load = async () => {
@@ -160,13 +174,51 @@ export default function AdminSubmissionsPage() {
 	const viewEvidence = Array.isArray(viewTarget?.evidenceUrls) ? viewTarget.evidenceUrls : [];
 
 	return (
-		<Box sx={{ p: { xs: 2, md: 3 }, maxWidth: 1200 }}>
+		<Box
+			sx={{
+				position: "relative",
+				p: { xs: 2, md: 3 },
+				maxWidth: 1200,
+
+				// ✅ Top gradient overlay (theme-driven)
+				"&:before": {
+					content: '""',
+					position: "absolute",
+					top: 0,
+					left: 0,
+					right: 0,
+					borderRadius:2,
+					height: { xs: 180, md: 220 },
+					background: `linear-gradient(
+						180deg,
+						${theme.palette.tones?.blue?.bg ?? "rgba(59,130,246,0.12)"} 0%,
+						${theme.palette.tones?.green?.bg ?? "rgba(22,101,52,0.10)"} 45%,
+						transparent 85%
+					)`,
+					// smooth fade (no hard bottom edge)
+					maskImage:
+						"linear-gradient(to bottom, rgba(0,0,0,1) 0%, rgba(0,0,0,1) 60%, rgba(0,0,0,0) 100%)",
+					WebkitMaskImage:
+						"linear-gradient(to bottom, rgba(0,0,0,1) 0%, rgba(0,0,0,1) 60%, rgba(0,0,0,0) 100%)",
+					pointerEvents: "none",
+					zIndex: 0,
+				},
+				"& > *": { position: "relative", zIndex: 1 },
+			}}
+		>
 			<Typography variant="h4" sx={{ fontWeight: 700, mb: 1 }}>
 				Moderation
 			</Typography>
-			<Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+			<Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
 				Review mission submissions and approve or reject them.
 			</Typography>
+
+			{/* ✅ Tonal panel / legend */}
+		{/* 	<Stack direction="row" spacing={1} flexWrap="wrap" sx={{ mb: 2 }}>
+				<Chip label="Approved" size="small" sx={toneChipSx("green")} />
+				<Chip label="Pending" size="small" sx={toneChipSx("amber")} />
+				<Chip label="Rejected" size="small" sx={toneChipSx("rejected")} />
+			</Stack> */}
 
 			<Stack
 				direction={{ xs: "column", sm: "row" }}
@@ -229,7 +281,12 @@ export default function AdminSubmissionsPage() {
 									<Card key={sub._id} variant="outlined" sx={{ borderRadius: 2 }}>
 										<CardContent sx={{ p: 1.5 }}>
 											<Stack spacing={1}>
-												<Stack direction="row" alignItems="flex-start" justifyContent="space-between" spacing={1}>
+												<Stack
+													direction="row"
+													alignItems="flex-start"
+													justifyContent="space-between"
+													spacing={1}
+												>
 													<Box sx={{ minWidth: 0 }}>
 														<Typography sx={{ fontWeight: 800 }} noWrap>
 															{missionTitle}
@@ -238,6 +295,8 @@ export default function AdminSubmissionsPage() {
 															{userName}
 														</Typography>
 													</Box>
+
+													{/* ✅ toned status */}
 													<StatusChip status={sub.status} />
 												</Stack>
 
@@ -349,7 +408,9 @@ export default function AdminSubmissionsPage() {
 
 												<TableCell>
 													<Stack spacing={0.5}>
+														{/* ✅ toned status */}
 														<StatusChip status={sub.status} />
+
 														{status === "rejected" && sub?.rejectionReason && (
 															<Typography variant="caption" color="error">
 																Reason: {sub.rejectionReason}

@@ -8,9 +8,6 @@ import {
 	Divider,
 	Stack,
 	Typography,
-	List,
-	ListItemButton,
-	ListItemText,
 	Tabs,
 	Tab,
 } from "@mui/material";
@@ -20,11 +17,10 @@ import { useUser } from "../../../app/providers/UserProvider.jsx";
 import LoadingSpinner from "../../../components/common/LoadingSpinner.jsx";
 import { useCommunity } from "../../../app/providers/CommunityProvider.jsx";
 
-// ✅ checkins service (approved completions)
 import { getMyCheckins } from "../../../services/checkinService.js";
-
-// ✅ submissions service (pending / rejected)
 import { getMySubmissions } from "../../../services/submissionsService.js";
+
+import TonePanel from "../components/TonePanel.jsx";
 
 function DashboardActivity() {
 	const { user } = useUser();
@@ -39,7 +35,6 @@ function DashboardActivity() {
 	const { communityData } = useCommunity();
 	const myRank = communityData?.myRank?.byPoints;
 
-	// ✅ Tabs: approved (checkins) / pending / rejected
 	const [tab, setTab] = useState("approved");
 
 	useEffect(() => {
@@ -50,24 +45,19 @@ function DashboardActivity() {
 				setLoading(true);
 				setError("");
 
-				// Load BOTH: checkins + submissions
 				const [checkinsRes, submissionsRes] = await Promise.all([
 					getMyCheckins(),
 					getMySubmissions(),
 				]);
 
-				// checkins service sometimes returns array or { items }
 				const checkinsData = Array.isArray(checkinsRes)
 					? checkinsRes
 					: checkinsRes?.items || checkinsRes?.data || [];
 
-				// submissions service sometimes returns axios res OR data
 				const rawSubs =
 					submissionsRes?.data ?? submissionsRes?.items ?? submissionsRes;
 
-				const subsData = Array.isArray(rawSubs)
-					? rawSubs
-					: rawSubs?.items || [];
+				const subsData = Array.isArray(rawSubs) ? rawSubs : rawSubs?.items || [];
 
 				if (!cancelled) {
 					setCheckins(Array.isArray(checkinsData) ? checkinsData : []);
@@ -93,21 +83,27 @@ function DashboardActivity() {
 	}, []);
 
 	// -----------------------
-	// Summary stats (keep yours)
+	// Summary stats
 	// -----------------------
 	const ecoPoints = user?.points ?? 0;
 	const missionsStarted = user?.missions?.length ?? 0;
 	const favoritesCount = user?.favorites?.missions?.length ?? 0;
 
-	const completionsCount = checkins.length; // ✅ approved completions
+	const completionsCount = checkins.length;
 
 	const pendingSubs = useMemo(
-		() => submissions.filter((s) => String(s.status || "").toLowerCase() === "pending"),
+		() =>
+			submissions.filter(
+				(s) => String(s.status || "").toLowerCase() === "pending"
+			),
 		[submissions]
 	);
 
 	const rejectedSubs = useMemo(
-		() => submissions.filter((s) => String(s.status || "").toLowerCase() === "rejected"),
+		() =>
+			submissions.filter(
+				(s) => String(s.status || "").toLowerCase() === "rejected"
+			),
 		[submissions]
 	);
 
@@ -125,7 +121,6 @@ function DashboardActivity() {
 	}, [checkins]);
 
 	const getRejectionReason = (s) => {
-		// support common shapes
 		return (
 			s.rejectionReason ||
 			s.adminNote ||
@@ -137,348 +132,437 @@ function DashboardActivity() {
 		);
 	};
 
+	// -----------------------
+	// Helpers for Activity tiles
+	// -----------------------
+	const Tile = ({
+		tone,
+		title,
+		category,
+		when,
+		rightChips = null,
+		onClick,
+		secondary = null,
+	}) => {
+		return (
+			<TonePanel
+				tone={tone}
+				onClick={onClick}
+				sx={{
+					width: "100%",
+					cursor: onClick ? "pointer" : "default",
+					p: 2,
+					borderRadius: 3,
+					transition: "transform 120ms ease, filter 120ms ease",
+					"&:hover": onClick
+						? { filter: "brightness(1.03)", transform: "translateY(-1px)" }
+						: undefined,
+				}}
+			>
+				<Stack
+					direction="row"
+					alignItems="flex-start"
+					justifyContent="space-between"
+					spacing={2}
+				>
+					<Box sx={{ minWidth: 0 }}>
+						<Stack direction="row" spacing={1} alignItems="center">
+							<Typography
+								variant="subtitle1"
+								sx={{
+									fontWeight: 800,
+									lineHeight: 1.2,
+									whiteSpace: "nowrap",
+									overflow: "hidden",
+									textOverflow: "ellipsis",
+									maxWidth: { xs: 220, sm: 360 },
+								}}
+								title={title}
+							>
+								{title}
+							</Typography>
+
+							{category && (
+								<Chip
+									label={category}
+									size="small"
+									sx={{
+										fontSize: 11,
+										bgcolor: "rgba(255,255,255,0.55)",
+										border: "1px solid rgba(0,0,0,0.08)",
+									}}
+								/>
+							)}
+						</Stack>
+
+						<Typography variant="body2" sx={{ opacity: 0.85, mt: 0.6 }}>
+							{when}
+						</Typography>
+
+						{secondary && (
+							<Typography variant="body2" sx={{ mt: 0.8, opacity: 0.9 }}>
+								{secondary}
+							</Typography>
+						)}
+					</Box>
+
+					{rightChips ? (
+						<Stack
+							direction="row"
+							spacing={1}
+							alignItems="center"
+							justifyContent="flex-end"
+							sx={{ flexShrink: 0 }}
+						>
+							{rightChips}
+						</Stack>
+					) : null}
+				</Stack>
+			</TonePanel>
+		);
+	};
+
 	if (loading) {
 		return <LoadingSpinner fullScreen={false} />;
 	}
 
 	return (
-		<Box sx={{ p: { xs: 2, md: 3 }, maxWidth: 1130 }}>
-			<Typography variant="h4" sx={{ fontWeight: 600, mb: 1 }}>
-				My missions & activity
-			</Typography>
-			<Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-				Your approved completions are recorded as check-ins, including points and impact.
-			</Typography>
-
-			{error && (
-				<Typography color="error" sx={{ mb: 2 }}>
-					{error}
+		<Box
+			sx={(theme) => ({
+				p: { xs: 2, md: 3 },
+				maxWidth: 1130,
+				position: "relative",
+				"&:before": {
+					content: '""',
+					position: "absolute",
+					left: 0,
+					right: 0,
+					top: 0,
+					height: 190,
+					borderRadius: 2,
+					// if you don't have theme.palette.tones, swap this line to a hardcoded rgba.
+					background: theme.palette?.tones?.blue?.bg
+						? `linear-gradient(180deg, ${theme.palette.tones.blue.bg} 0%, transparent 75%)`
+						: "linear-gradient(180deg, rgba(59,130,246,0.12) 0%, transparent 75%)",
+					pointerEvents: "none",
+				},
+			})}
+		>
+			<Box sx={{ position: "relative" }}>
+				<Typography variant="h4" sx={{ fontWeight: 600, mb: 1 }}>
+					My missions & activity
 				</Typography>
-			)}
+				<Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+					Your approved completions are recorded as check-ins, including points and
+					impact.
+				</Typography>
 
-			<Stack direction={{ xs: "column", lg: "row" }} spacing={3} alignItems="stretch">
-				{/* Left: summary stats */}
-				<Card sx={{ flex: { xs: "unset", lg: 1.4 }, borderRadius: 2 }}>
-					<CardContent>
-						<Typography variant="h6" sx={{ mb: 2 }}>
-							Summary
-						</Typography>
+				{error && (
+					<Typography color="error" sx={{ mb: 2 }}>
+						{error}
+					</Typography>
+				)}
 
-						<Stack direction={{ xs: "column", sm: "row" }} spacing={3}>
-							<Box>
-								<Typography variant="h5" sx={{ fontWeight: 600, color: "#166534" }}>
-									{ecoPoints}
-								</Typography>
-								<Typography variant="body2" color="text.secondary">
-									Eco points
-								</Typography>
-							</Box>
+				<Stack
+					direction={{ xs: "column", lg: "row" }}
+					spacing={3}
+					alignItems="stretch"
+				>
+					{/* Left: summary */}
+					<Card sx={{ flex: { xs: "unset", lg: 1.4 }, borderRadius: 2 }}>
+						<CardContent>
+							<Typography variant="h6" sx={{ mb: 2 }}>
+								Summary
+							</Typography>
 
-							<Box>
-								<Typography variant="h5" sx={{ fontWeight: 600 }}>
-									{missionsStarted}
-								</Typography>
-								<Typography variant="body2" color="text.secondary">
-									Missions started
-								</Typography>
-							</Box>
+							<Stack
+								direction={{ xs: "column", sm: "row" }}
+								spacing={2}
+								sx={{ mb: 2 }}
+							>
+								<TonePanel tone="green" sx={{ flex: 1 }}>
+									<Typography variant="caption" sx={{ opacity: 0.9 }}>
+										Eco points
+									</Typography>
+									<Typography variant="h5" sx={{ fontWeight: 800, mt: 0.5 }}>
+										{ecoPoints}
+									</Typography>
+								</TonePanel>
 
-							<Box>
-								<Typography variant="h5" sx={{ fontWeight: 600 }}>
-									{favoritesCount}
-								</Typography>
-								<Typography variant="body2" color="text.secondary">
-									Saved missions
-								</Typography>
-							</Box>
+								<TonePanel tone="blue" sx={{ flex: 1 }}>
+									<Typography variant="caption" sx={{ opacity: 0.9 }}>
+										Missions started
+									</Typography>
+									<Typography variant="h5" sx={{ fontWeight: 800, mt: 0.5 }}>
+										{missionsStarted}
+									</Typography>
+								</TonePanel>
 
-							<Box>
-								<Typography variant="h5" sx={{ fontWeight: 600 }}>
-									{completionsCount}
-								</Typography>
-								<Typography variant="body2" color="text.secondary">
-									Approved completions
-								</Typography>
-							</Box>
+								<TonePanel tone="indigo" sx={{ flex: 1 }}>
+									<Typography variant="caption" sx={{ opacity: 0.9 }}>
+										Saved missions
+									</Typography>
+									<Typography variant="h5" sx={{ fontWeight: 800, mt: 0.5 }}>
+										{favoritesCount}
+									</Typography>
+								</TonePanel>
 
-							<Box
-								onClick={() => navigate("/dashboard/community")}
+								<TonePanel tone="green" sx={{ flex: 1 }}>
+									<Typography variant="caption" sx={{ opacity: 0.9 }}>
+										Approved completions
+									</Typography>
+									<Typography variant="h5" sx={{ fontWeight: 800, mt: 0.5 }}>
+										{completionsCount}
+									</Typography>
+								</TonePanel>
+
+								<TonePanel
+									tone="blue"
+									onClick={() => navigate("/dashboard/community")}
+									sx={{
+										flex: 1,
+										cursor: "pointer",
+										transition: "transform 120ms ease, filter 120ms ease",
+										"&:hover": { filter: "brightness(1.03)", transform: "translateY(-1px)" },
+									}}
+								>
+									<Typography variant="caption" sx={{ opacity: 0.9 }}>
+										Community rank
+									</Typography>
+									<Typography variant="h5" sx={{ fontWeight: 800, mt: 0.5 }}>
+										{myRank?.rank ? `#${myRank.rank}` : "—"}
+									</Typography>
+									<Typography variant="caption" sx={{ opacity: 0.85 }}>
+										of {myRank?.totalUsers ?? "—"}
+									</Typography>
+								</TonePanel>
+							</Stack>
+
+							<Divider sx={{ my: 2 }} />
+
+							<Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
+								<Chip
+									label={`CO₂ saved: ${totals.co2Kg.toFixed(1)} kg`}
+									variant="outlined"
+								/>
+								<Chip
+									label={`Water saved: ${totals.waterL.toFixed(0)} L`}
+									variant="outlined"
+								/>
+								<Chip
+									label={`Waste saved: ${totals.wasteKg.toFixed(1)} kg`}
+									variant="outlined"
+								/>
+							</Stack>
+
+							<Divider sx={{ my: 2 }} />
+
+							<Stack direction="row" spacing={1.5} flexWrap="wrap">
+								<Chip label={`Pending: ${pendingSubs.length}`} variant="outlined" />
+								<Chip label={`Rejected: ${rejectedSubs.length}`} variant="outlined" />
+							</Stack>
+
+							<Typography variant="body2" color="text.secondary" sx={{ mt: 2 }}>
+								Check-ins are created automatically when an admin approves your submission.
+							</Typography>
+						</CardContent>
+					</Card>
+
+					{/* Right: Activity */}
+					<Card sx={{ flex: { xs: "unset", lg: 1.4 }, borderRadius: 2 }}>
+						<CardContent>
+							<Typography variant="h6" sx={{ mb: 1 }}>
+								Activity
+							</Typography>
+
+							<Tabs
+								value={tab}
+								onChange={(_e, v) => setTab(v)}
+								variant="scrollable"
+								scrollButtons="auto"
 								sx={{
-									cursor: "pointer",
-									borderRadius: 2,
-									px: 1.5,
-									py: 0.5,
-									"&:hover": { bgcolor: "action.hover" },
+									mb: 2,
+									"& .MuiTab-root": { textTransform: "none", fontWeight: 700 },
 								}}
 							>
-								<Typography variant="h5" sx={{ fontWeight: 600 }}>
-									{myRank?.rank ? `#${myRank.rank}` : "—"}
-								</Typography>
-								<Typography variant="body2" color="text.secondary">
-									Community rank of {myRank?.totalUsers ?? "—"}
-								</Typography>
-							</Box>
-						</Stack>
+								<Tab value="approved" label={`Approved (${checkins.length})`} />
+								<Tab value="pending" label={`Pending (${pendingSubs.length})`} />
+								<Tab value="rejected" label={`Rejected (${rejectedSubs.length})`} />
+							</Tabs>
 
-						<Divider sx={{ my: 2 }} />
-
-						<Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
-							<Chip label={`CO₂ saved: ${totals.co2Kg.toFixed(1)} kg`} variant="outlined" />
-							<Chip label={`Water saved: ${totals.waterL.toFixed(0)} L`} variant="outlined" />
-							<Chip label={`Waste saved: ${totals.wasteKg.toFixed(1)} kg`} variant="outlined" />
-						</Stack>
-
-						<Divider sx={{ my: 2 }} />
-
-						<Stack direction="row" spacing={1.5} flexWrap="wrap">
-							<Chip label={`Pending: ${pendingSubs.length}`} variant="outlined" />
-							<Chip label={`Rejected: ${rejectedSubs.length}`} variant="outlined" />
-						</Stack>
-
-						<Typography variant="body2" color="text.secondary" sx={{ mt: 2 }}>
-							Check-ins are created automatically when an admin approves your submission.
-						</Typography>
-					</CardContent>
-				</Card>
-
-				{/* Right: tabbed lists */}
-				<Card sx={{ flex: { xs: "unset", lg: 1.4 }, borderRadius: 2 }}>
-					<CardContent>
-						<Typography variant="h6" sx={{ mb: 1 }}>
-							Activity
-						</Typography>
-
-						<Tabs
-							value={tab}
-							onChange={(_e, v) => setTab(v)}
-							variant="scrollable"
-							scrollButtons="auto"
-							sx={{
-								mb: 2,
-								"& .MuiTab-root": { textTransform: "none", fontWeight: 700 },
-							}}
-						>
-							<Tab value="approved" label={`Approved (${checkins.length})`} />
-							<Tab value="pending" label={`Pending (${pendingSubs.length})`} />
-							<Tab value="rejected" label={`Rejected (${rejectedSubs.length})`} />
-						</Tabs>
-
-						{/* ✅ APPROVED: keep your current working checkins list */}
-						{tab === "approved" && (
-							<>
-								<Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-									Recent check-ins (approved)
-								</Typography>
-
-								{checkins.length === 0 ? (
-									<Typography variant="body2" color="text.secondary">
-										No approved missions yet. Once a submission is approved, it will appear here.
+							{/* ✅ APPROVED (TonePanel tiles) */}
+							{tab === "approved" && (
+								<>
+									<Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+										Recent check-ins (approved)
 									</Typography>
-								) : (
-									<List dense sx={{ pt: 0 }}>
-										{checkins.slice(0, 10).map((c) => {
-											const mission = c.missionId || {};
-											const title = mission.title || "Mission";
-											const category = mission.category || "General";
-											const when = c.createdAt
-												? new Date(c.createdAt).toLocaleString()
-												: "Unknown date";
-											const pts = c.points ?? 0;
 
-											return (
-												<ListItemButton
-													key={c._id}
-													onClick={() =>
-														mission._id && navigate(`/dashboard/missions/${mission._id}`)
-													}
-													sx={{ px: 1, py: 0.5, borderRadius: 2 }}
-												>
-													<ListItemText
-														primaryTypographyProps={{
-															variant: "body2",
-															sx: { display: "flex", justifyContent: "space-between" },
-														}}
-														primary={
-															<>
-																<span>
-																	{title}
-																	<Chip
-																		label={category}
-																		size="small"
-																		sx={{ ml: 1, fontSize: 10 }}
-																	/>
-																</span>
-																<span style={{ display: "flex", gap: 8 }}>
-																	<Chip
-																		label={`+${pts} pts`}
-																		size="small"
-																		sx={{
-																			fontSize: 10,
-																			bgcolor: "#ecfdf3",
-																			color: "#166534",
-																		}}
-																	/>
-																	<Chip
-																		label="Approved"
-																		size="small"
-																		color="success"
-																		variant="outlined"
-																		sx={{ fontSize: 10 }}
-																	/>
-																</span>
-															</>
+									{checkins.length === 0 ? (
+										<Typography variant="body2" color="text.secondary">
+											No approved missions yet. Once a submission is approved, it will appear here.
+										</Typography>
+									) : (
+										<Stack spacing={1.5}>
+											{checkins.slice(0, 10).map((c) => {
+												const mission = c.missionId || {};
+												const title = mission.title || "Mission";
+												const category = mission.category || "General";
+												const when = c.createdAt
+													? new Date(c.createdAt).toLocaleString()
+													: "Unknown date";
+												const pts = c.points ?? 0;
+
+												return (
+													<Tile
+														key={c._id}
+														tone="green"
+														title={title}
+														category={category}
+														when={when}
+														onClick={() =>
+															mission._id && navigate(`/dashboard/missions/${mission._id}`)
 														}
-														secondary={
-															<Typography variant="body2" color="text.secondary" sx={{ mt: 0.3 }}>
-																{when}
-															</Typography>
-														}
-													/>
-												</ListItemButton>
-											);
-										})}
-									</List>
-								)}
-							</>
-						)}
-
-						{/* ✅ PENDING */}
-						{tab === "pending" && (
-							<>
-								<Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-									Submissions waiting for review
-								</Typography>
-
-								{pendingSubs.length === 0 ? (
-									<Typography variant="body2" color="text.secondary">
-										No pending submissions right now.
-									</Typography>
-								) : (
-									<List dense sx={{ pt: 0 }}>
-										{pendingSubs.slice(0, 10).map((s) => {
-											const mission = s.missionId || {};
-											const title = mission.title || "Mission";
-											const category = mission.category || "General";
-											const when = s.createdAt
-												? new Date(s.createdAt).toLocaleString()
-												: "Unknown date";
-
-											return (
-												<ListItemButton
-													key={s._id}
-													onClick={() => mission._id && navigate(`/dashboard/missions/${mission._id}`)}
-													sx={{ px: 1, py: 0.5, borderRadius: 2 }}
-												>
-													<ListItemText
-														primaryTypographyProps={{
-															variant: "body2",
-															sx: { display: "flex", justifyContent: "space-between" },
-														}}
-														primary={
+														rightChips={
 															<>
-																<span>
-																	{title}
-																	<Chip label={category} size="small" sx={{ ml: 1, fontSize: 10 }} />
-																</span>
 																<Chip
-																	label="Pending"
+																	label={`+${pts} pts`}
 																	size="small"
-																	color="warning"
+																	sx={{
+																		fontSize: 11,
+																		bgcolor: "rgba(255,255,255,0.55)",
+																		border: "1px solid rgba(0,0,0,0.08)",
+																	}}
+																/>
+																<Chip
+																	label="Approved"
+																	size="small"
 																	variant="outlined"
-																	sx={{ fontSize: 10 }}
+																	color="success"
+																	sx={{ fontSize: 11, bgcolor: "rgba(255,255,255,0.35)" }}
 																/>
 															</>
 														}
-														secondary={
-															<Typography variant="body2" color="text.secondary" sx={{ mt: 0.3 }}>
-																{when}
-															</Typography>
+													/>
+												);
+											})}
+										</Stack>
+									)}
+								</>
+							)}
+
+							{/* ✅ PENDING (TonePanel tiles) */}
+							{tab === "pending" && (
+								<>
+									<Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+										Submissions waiting for review
+									</Typography>
+
+									{pendingSubs.length === 0 ? (
+										<Typography variant="body2" color="text.secondary">
+											No pending submissions right now.
+										</Typography>
+									) : (
+										<Stack spacing={1.5}>
+											{pendingSubs.slice(0, 10).map((s) => {
+												const mission = s.missionId || {};
+												const title = mission.title || "Mission";
+												const category = mission.category || "General";
+												const when = s.createdAt
+													? new Date(s.createdAt).toLocaleString()
+													: "Unknown date";
+
+												return (
+													<Tile
+														key={s._id}
+														tone="amber"
+														title={title}
+														category={category}
+														when={when}
+														onClick={() =>
+															mission._id && navigate(`/dashboard/missions/${mission._id}`)
+														}
+														rightChips={
+															<Chip
+																label="Pending"
+																size="small"
+																variant="outlined"
+																color="warning"
+																sx={{ fontSize: 11, bgcolor: "rgba(255,255,255,0.35)" }}
+															/>
 														}
 													/>
-												</ListItemButton>
-											);
-										})}
-									</List>
-								)}
-							</>
-						)}
+												);
+											})}
+										</Stack>
+									)}
+								</>
+							)}
 
-						{/* ✅ REJECTED (with reason) */}
-						{tab === "rejected" && (
-							<>
-								<Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-									Rejected submissions (with reason)
-								</Typography>
-
-								{rejectedSubs.length === 0 ? (
-									<Typography variant="body2" color="text.secondary">
-										No rejected submissions. Nice 👌
+							{/* ✅ REJECTED (TonePanel tiles) */}
+							{tab === "rejected" && (
+								<>
+									<Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+										Rejected submissions (with reason)
 									</Typography>
-								) : (
-									<List dense sx={{ pt: 0 }}>
-										{rejectedSubs.slice(0, 10).map((s) => {
-											const mission = s.missionId || {};
-											const title = mission.title || "Mission";
-											const category = mission.category || "General";
-											const when = s.createdAt
-												? new Date(s.createdAt).toLocaleString()
-												: "Unknown date";
-											const reason = getRejectionReason(s).trim();
 
-											return (
-												<ListItemButton
-													key={s._id}
-													onClick={() => mission._id && navigate(`/dashboard/missions/${mission._id}`)}
-													sx={{ px: 1, py: 0.75, borderRadius: 2 }}
-												>
-													<ListItemText
-														primaryTypographyProps={{
-															variant: "body2",
-															sx: { display: "flex", justifyContent: "space-between" },
-														}}
-														primary={
-															<>
-																<span>
-																	{title}
-																	<Chip label={category} size="small" sx={{ ml: 1, fontSize: 10 }} />
-																</span>
-																<Chip
-																	label="Rejected"
-																	size="small"
-																	color="error"
-																	variant="outlined"
-																	sx={{ fontSize: 10 }}
-																/>
-															</>
+									{rejectedSubs.length === 0 ? (
+										<Typography variant="body2" color="text.secondary">
+											No rejected submissions. Nice 👌
+										</Typography>
+									) : (
+										<Stack spacing={1.5}>
+											{rejectedSubs.slice(0, 10).map((s) => {
+												const mission = s.missionId || {};
+												const title = mission.title || "Mission";
+												const category = mission.category || "General";
+												const when = s.createdAt
+													? new Date(s.createdAt).toLocaleString()
+													: "Unknown date";
+												const reason = getRejectionReason(s).trim();
+
+												return (
+													<Tile
+														key={s._id}
+														tone="rejected"
+														title={title}
+														category={category}
+														when={when}
+														onClick={() =>
+															mission._id && navigate(`/dashboard/missions/${mission._id}`)
 														}
 														secondary={
-															<Box sx={{ mt: 0.3 }}>
-																<Typography variant="body2" color="text.secondary">
-																	{when}
-																</Typography>
-
+															<Box>
 																<Typography
 																	variant="body2"
-																	sx={{ mt: 0.5, color: "error.main", fontWeight: 700 }}
+																	sx={{ fontWeight: 800, opacity: 0.95 }}
 																>
-																	Reason:{" "}
-																	<span style={{ fontWeight: 500 }}>
-																		{reason || "No reason provided."}
-																	</span>
+																	Reason:
+																</Typography>
+																<Typography variant="body2" sx={{ opacity: 0.9 }}>
+																	{reason || "No reason provided."}
 																</Typography>
 															</Box>
 														}
+														rightChips={
+															<Chip
+																label="Rejected"
+																size="small"
+																variant="outlined"
+																color="error"
+																sx={{ fontSize: 11, bgcolor: "rgba(255,255,255,0.35)" }}
+															/>
+														}
 													/>
-												</ListItemButton>
-											);
-										})}
-									</List>
-								)}
-							</>
-						)}
-					</CardContent>
-				</Card>
-			</Stack>
+												);
+											})}
+										</Stack>
+									)}
+								</>
+							)}
+						</CardContent>
+					</Card>
+				</Stack>
+			</Box>
 		</Box>
 	);
 }

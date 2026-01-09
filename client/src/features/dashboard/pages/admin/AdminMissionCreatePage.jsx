@@ -12,6 +12,7 @@ import {
 	Switch,
 	FormControlLabel,
 	IconButton,
+	useTheme,
 } from "@mui/material";
 import { useNavigate } from "react-router-dom";
 import AddIcon from "@mui/icons-material/Add";
@@ -57,6 +58,8 @@ function clearErr(setErrors, path) {
 export default function AdminMissionCreatePage() {
 	const navigate = useNavigate();
 	const { showSuccess, showError } = useSnackbar();
+
+	const theme = useTheme();
 
 	const [saving, setSaving] = useState(false);
 
@@ -129,7 +132,7 @@ export default function AdminMissionCreatePage() {
 	const setSubmissionOptionsFromText = (index, text) => {
 		const arr = text
 			.split(",")
-			.map((x) => x.trim())
+		map((x) => x.trim())
 			.filter(Boolean);
 		updateSubmissionField(index, "options", arr);
 	};
@@ -199,7 +202,37 @@ export default function AdminMissionCreatePage() {
 	};
 
 	return (
-		<Box sx={{ p: { xs: 2, md: 3 }, maxWidth: 900 }}>
+		<Box
+			sx={{
+				position: "relative",
+				p: { xs: 2, md: 3 },
+				maxWidth: 900,
+
+				// ✅ Top overlay from CustomThemeProvider tones
+				"&:before": {
+					content: '""',
+					position: "absolute",
+					borderRadius:2,
+					top: 0,
+					left: 0,
+					right: 0,
+					height: { xs: 180, md: 220 },
+					background: `linear-gradient(
+						180deg,
+						${theme.palette.tones?.blue?.bg ?? "rgba(59,130,246,0.12)"} 0%,
+						${theme.palette.tones?.green?.bg ?? "rgba(22,101,52,0.10)"} 45%,
+						transparent 85%
+					)`,
+					maskImage:
+						"linear-gradient(to bottom, rgba(0,0,0,1) 0%, rgba(0,0,0,1) 60%, rgba(0,0,0,0) 100%)",
+					WebkitMaskImage:
+						"linear-gradient(to bottom, rgba(0,0,0,1) 0%, rgba(0,0,0,1) 60%, rgba(0,0,0,0) 100%)",
+					pointerEvents: "none",
+					zIndex: 0,
+				},
+				"& > *": { position: "relative", zIndex: 1 },
+			}}
+		>
 			<Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 2 }}>
 				<Box>
 					<Typography variant="h4" sx={{ fontWeight: 700, mb: 0.5 }}>
@@ -395,10 +428,7 @@ export default function AdminMissionCreatePage() {
 							/>
 							<FormControlLabel
 								control={
-									<Switch
-										checked={form.isPublished}
-										onChange={(e) => setField("isPublished", e.target.checked)}
-									/>
+									<Switch checked={form.isPublished} onChange={(e) => setField("isPublished", e.target.checked)} />
 								}
 								label="Published"
 							/>

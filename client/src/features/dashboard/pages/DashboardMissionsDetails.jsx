@@ -91,11 +91,13 @@ function DashboardMissionDetails() {
 			const apiMessage = err?.response?.data?.message;
 
 			if (status === 409) {
-				const msg = apiMessage || "You already have a pending submission for this mission.";
+				const msg =
+					apiMessage || "You already have a pending submission for this mission.";
 				setError(msg);
 				showError?.(msg);
 			} else {
-				const msg = apiMessage || "Could not submit this mission right now. Please try again.";
+				const msg =
+					apiMessage || "Could not submit this mission right now. Please try again.";
 				setError(msg);
 				showError?.(msg);
 			}
@@ -126,7 +128,45 @@ function DashboardMissionDetails() {
 	}
 
 	return (
-		<Box sx={{ display: "flex", flexDirection: "column", gap: 3 }}>
+		<Box
+			sx={(theme) => ({
+				position: "relative",
+				p: { xs: 2, md: 3 },
+				display: "flex",
+				flexDirection: "column",
+				gap: 3,
+
+				// ✅ Top gradient overlay (theme-driven)
+				"&:before": {
+					content: '""',
+					position: "absolute",
+					top: 0,
+					left: 0,
+					right: 0,
+					height: { xs: 180, md: 220 },
+					borderRadius:2,
+
+					// use your theme tones
+					background: `linear-gradient(
+						180deg,
+						${theme.palette.tones?.blue?.bg ?? "rgba(59,130,246,0.12)"} 0%,
+						${theme.palette.tones?.green?.bg ?? "rgba(22,101,52,0.10)"} 45%,
+						transparent 85%
+					)`,
+
+					// ✅ no bottom “border” line, just fades away
+					maskImage:
+						"linear-gradient(to bottom, rgba(0,0,0,1) 0%, rgba(0,0,0,1) 60%, rgba(0,0,0,0) 100%)",
+					WebkitMaskImage:
+						"linear-gradient(to bottom, rgba(0,0,0,1) 0%, rgba(0,0,0,1) 60%, rgba(0,0,0,0) 100%)",
+
+					pointerEvents: "none",
+					zIndex: 0,
+				},
+
+				"& > *": { position: "relative", zIndex: 1 },
+			})}
+		>
 			<MissionHeader
 				title={mission.title}
 				summary={mission.summary}
@@ -138,7 +178,11 @@ function DashboardMissionDetails() {
 				onBack={handleBack}
 			/>
 
-			<Stack direction={{ xs: "column", md: "row" }} spacing={3} alignItems="flex-start">
+			<Stack
+				direction={{ xs: "column", md: "row" }}
+				spacing={3}
+				alignItems="flex-start"
+			>
 				<MissionDescriptionCard mission={mission} />
 
 				<Stack spacing={2} sx={{ width: { xs: "100%", md: 420 } }}>
@@ -172,12 +216,7 @@ function DashboardMissionDetails() {
 			</Stack>
 
 			{/* ✅ Submission modal */}
-			<Dialog
-				open={submitOpen}
-				onClose={closeSubmitModal}
-				fullWidth
-				maxWidth="sm"
-			>
+			<Dialog open={submitOpen} onClose={closeSubmitModal} fullWidth maxWidth="sm">
 				<DialogTitle>Submit mission</DialogTitle>
 
 				<DialogContent dividers>

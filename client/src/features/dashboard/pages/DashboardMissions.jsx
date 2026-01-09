@@ -42,7 +42,6 @@ const CATEGORY_OPTIONS = [
 	"Community",
 ];
 const DIFFICULTY_OPTIONS = ["Easy", "Medium", "Hard"];
-
 const PAGE_SIZE_OPTIONS = [6, 12, 24];
 
 function DashboardMissions() {
@@ -58,7 +57,7 @@ function DashboardMissions() {
 	const [error, setError] = useState("");
 
 	// --- Pagination state ---
-	const [page, setPage] = useState(1); // 1-based for MUI Pagination
+	const [page, setPage] = useState(1);
 	const [pageSize, setPageSize] = useState(6);
 
 	// --- Edit dialog state ---
@@ -78,7 +77,6 @@ function DashboardMissions() {
 	const [deleteTarget, setDeleteTarget] = useState(null);
 	const [deleting, setDeleting] = useState(false);
 
-	// ✅ cleanup search query when leaving the page
 	useEffect(() => {
 		return () => setQuery("");
 	}, [setQuery]);
@@ -100,7 +98,6 @@ function DashboardMissions() {
 		const id = deleteTarget._id;
 		const prev = missions;
 
-		// optimistic remove
 		setMissions((cur) => cur.filter((m) => m._id !== id));
 
 		try {
@@ -110,7 +107,7 @@ function DashboardMissions() {
 			closeDelete();
 		} catch (err) {
 			console.error("Delete mission failed:", err);
-			setMissions(prev); // rollback
+			setMissions(prev);
 			showError?.(err?.response?.data?.message || "Failed to delete mission.");
 		} finally {
 			setDeleting(false);
@@ -145,7 +142,6 @@ function DashboardMissions() {
 		try {
 			const next = !mission.isPublished;
 
-			// optimistic UI
 			setMissions((prev) =>
 				prev.map((m) => (m._id === mission._id ? { ...m, isPublished: next } : m))
 			);
@@ -155,7 +151,6 @@ function DashboardMissions() {
 		} catch (err) {
 			console.error("Toggle publish failed:", err);
 
-			// rollback
 			setMissions((prev) =>
 				prev.map((m) =>
 					m._id === mission._id
@@ -248,12 +243,10 @@ function DashboardMissions() {
 		});
 	}, [missions, q]);
 
-	// ✅ Reset to first page when search changes or pageSize changes
 	useEffect(() => {
 		setPage(1);
 	}, [q, pageSize]);
 
-	// ✅ Pagination calculations
 	const total = filteredMissions.length;
 	const pageCount = Math.max(1, Math.ceil(total / pageSize));
 	const safePage = Math.min(page, pageCount);
@@ -273,147 +266,170 @@ function DashboardMissions() {
 	}
 
 	return (
-		<Box sx={{ p: { xs: 2, md: 3 } }}>
-			<Stack
-				direction="row"
-				alignItems="center"
-				justifyContent="space-between"
-				sx={{ mb: 1 }}
-			>
-				<Typography variant="h4" sx={{ fontWeight: 600 }}>
-					{isAdmin ? "Missions (Admin)" : "My missions"}
-				</Typography>
+		<Box
+			sx={(theme) => ({
+				p: { xs: 2, md: 3 },
+				maxWidth: 1200,
+				position: "relative",
 
-				{isAdmin && (
-					<Button
-						variant="contained"
-						onClick={() => navigate("/dashboard/admin/missions/new")}
-						sx={{
-							textTransform: "none",
-							bgcolor: "#166534",
-							"&:hover": { bgcolor: "#14532d" },
-						}}
-					>
-						Create mission
-					</Button>
-				)}
-			</Stack>
-
-			<Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-				{isAdmin
-					? "View all missions, toggle publish status, and edit mission details."
-					: "Pick a mission, complete it, and watch your eco points grow."}
-			</Typography>
-
-			{error && (
-				<Typography color="error" sx={{ mb: 2 }}>
-					{error}
-				</Typography>
-			)}
-
-			{/* ✅ Pagination controls */}
-			<Stack
-				direction={{ xs: "column", sm: "row" }}
-				spacing={2}
-				alignItems={{ xs: "stretch", sm: "center" }}
-				justifyContent="space-between"
-				sx={{ mb: 2 }}
-			>
-				<Typography variant="body2" color="text.secondary">
-					{total === 0 ? "No missions to show." : `Showing ${startIndex + 1}-${endIndex} of ${total}`}
-				</Typography>
-
+				// ✅ top gradient only (no TonePanel wrappers)
+				"&:before": {
+					content: '""',
+					position: "absolute",
+					left: 0,
+					right: 0,
+					top: 0,
+					height: 190,
+					borderRadius: 2,
+					background: `linear-gradient(180deg, ${theme.palette.tones.green.bg} 0%, transparent 75%)`,
+					pointerEvents: "none",
+				},
+			})}
+		>
+			{/* keep all content above the gradient */}
+			<Box sx={{ position: "relative" }}>
 				<Stack
-					direction={{ xs: "column", sm: "row" }}
-					spacing={1.5}
-					alignItems={{ xs: "stretch", sm: "center" }}
-					justifyContent="flex-end"
-					sx={{ width: { xs: "100%", sm: "auto" } }}
+					direction="row"
+					alignItems="center"
+					justifyContent="space-between"
+					sx={{ mb: 1 }}
 				>
-					<FormControl
-						size="small"
-						sx={{
-							minWidth: { xs: "100%", sm: 160 },
-						}}
-					>
-						<InputLabel id="page-size-label">Per page</InputLabel>
-						<Select
-							labelId="page-size-label"
-							value={pageSize}
-							label="Per page"
-							onChange={(e) => setPageSize(Number(e.target.value))}
-						>
-							{PAGE_SIZE_OPTIONS.map((n) => (
-								<MenuItem key={n} value={n}>
-									{n}
-								</MenuItem>
-							))}
-						</Select>
-					</FormControl>
+					<Typography variant="h4" sx={{ fontWeight: 600 }}>
+						{isAdmin ? "Missions (Admin)" : "My missions"}
+					</Typography>
 
-					<Box
-						sx={{
-							display: "flex",
-							justifyContent: { xs: "center", sm: "flex-end" },
-							width: { xs: "100%", sm: "auto" },
-						}}
-					>
-						<Pagination
-							count={pageCount}
-							page={safePage}
-							onChange={(_, value) => setPage(value)}
-							color="primary"
-							shape="rounded"
-						/>
-					</Box>
+					{isAdmin && (
+						<Button
+							variant="contained"
+							onClick={() => navigate("/dashboard/admin/missions/new")}
+							sx={{
+								textTransform: "none",
+								bgcolor: "#166534",
+								"&:hover": { bgcolor: "#14532d" },
+							}}
+						>
+							Create mission
+						</Button>
+					)}
 				</Stack>
 
-			</Stack>
+				<Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+					{isAdmin
+						? "View all missions, toggle publish status, and edit mission details."
+						: "Pick a mission, complete it, and watch your eco points grow."}
+				</Typography>
 
-			{/* ✅ IMPORTANT: pass the paged missions */}
-			<DashboardMissionsGrid
-				missions={pagedMissions}
-				isAdmin={isAdmin}
-				onOpenDetails={(id) => navigate(`/dashboard/missions/${id}`)}
-				onEdit={(mission) => openEdit(mission)}
-				onEditPage={(id) => navigate(`/dashboard/admin/missions/${id}/edit`)}
-				onTogglePublish={(mission) => handleTogglePublish(mission)}
-				onDelete={(mission) => openDelete(mission)}
-				FavoriteButtonComponent={FavoriteButton}
-			/>
-
-			<AdminMissionEditDialog
-				open={editOpen}
-				saving={saving}
-				form={editForm}
-				setForm={setEditForm}
-				onClose={closeEdit}
-				onSave={handleSaveEdit}
-			/>
-
-			{/* Delete confirmation dialog */}
-			<Dialog open={deleteOpen} onClose={closeDelete} fullWidth maxWidth="xs">
-				<DialogTitle>Delete mission?</DialogTitle>
-				<DialogContent>
-					<Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-						This will permanently delete <b>{deleteTarget?.title || "this mission"}</b>.
+				{error && (
+					<Typography color="error" sx={{ mb: 2 }}>
+						{error}
 					</Typography>
-				</DialogContent>
-				<DialogActions>
-					<Button onClick={closeDelete} disabled={deleting} sx={{ textTransform: "none" }}>
-						Cancel
-					</Button>
-					<Button
-						onClick={handleConfirmDelete}
-						disabled={deleting}
-						variant="contained"
-						color="error"
-						sx={{ textTransform: "none" }}
+				)}
+
+				{/* Pagination controls */}
+				<Stack
+					direction={{ xs: "column", sm: "row" }}
+					spacing={2}
+					alignItems={{ xs: "stretch", sm: "center" }}
+					justifyContent="space-between"
+					sx={{ mb: 2 }}
+				>
+					<Typography variant="body2" color="text.secondary">
+						{total === 0
+							? "No missions to show."
+							: `Showing ${startIndex + 1}-${endIndex} of ${total}`}
+					</Typography>
+
+					<Stack
+						direction={{ xs: "column", sm: "row" }}
+						spacing={1.5}
+						alignItems={{ xs: "stretch", sm: "center" }}
+						justifyContent="flex-end"
+						sx={{ width: { xs: "100%", sm: "auto" } }}
 					>
-						{deleting ? "Deleting..." : "Delete"}
-					</Button>
-				</DialogActions>
-			</Dialog>
+						<FormControl size="small" sx={{ minWidth: { xs: "100%", sm: 160 } }}>
+							<InputLabel id="page-size-label">Per page</InputLabel>
+							<Select
+								labelId="page-size-label"
+								value={pageSize}
+								label="Per page"
+								onChange={(e) => setPageSize(Number(e.target.value))}
+							>
+								{PAGE_SIZE_OPTIONS.map((n) => (
+									<MenuItem key={n} value={n}>
+										{n}
+									</MenuItem>
+								))}
+							</Select>
+						</FormControl>
+
+						<Box
+							sx={{
+								display: "flex",
+								justifyContent: { xs: "center", sm: "flex-end" },
+								width: { xs: "100%", sm: "auto" },
+							}}
+						>
+							<Pagination
+								count={pageCount}
+								page={safePage}
+								onChange={(_, value) => setPage(value)}
+								color="primary"
+								shape="rounded"
+							/>
+						</Box>
+					</Stack>
+				</Stack>
+
+				{/* IMPORTANT: paged missions */}
+				<DashboardMissionsGrid
+					missions={pagedMissions}
+					isAdmin={isAdmin}
+					onOpenDetails={(id) => navigate(`/dashboard/missions/${id}`)}
+					onEdit={(mission) => openEdit(mission)}
+					onEditPage={(id) => navigate(`/dashboard/admin/missions/${id}/edit`)}
+					onTogglePublish={(mission) => handleTogglePublish(mission)}
+					onDelete={(mission) => openDelete(mission)}
+					FavoriteButtonComponent={FavoriteButton}
+				/>
+
+				<AdminMissionEditDialog
+					open={editOpen}
+					saving={saving}
+					form={editForm}
+					setForm={setEditForm}
+					onClose={closeEdit}
+					onSave={handleSaveEdit}
+				/>
+
+				{/* Delete confirmation dialog */}
+				<Dialog open={deleteOpen} onClose={closeDelete} fullWidth maxWidth="xs">
+					<DialogTitle>Delete mission?</DialogTitle>
+					<DialogContent>
+						<Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+							This will permanently delete{" "}
+							<b>{deleteTarget?.title || "this mission"}</b>.
+						</Typography>
+					</DialogContent>
+					<DialogActions>
+						<Button
+							onClick={closeDelete}
+							disabled={deleting}
+							sx={{ textTransform: "none" }}
+						>
+							Cancel
+						</Button>
+						<Button
+							onClick={handleConfirmDelete}
+							disabled={deleting}
+							variant="contained"
+							color="error"
+							sx={{ textTransform: "none" }}
+						>
+							{deleting ? "Deleting..." : "Delete"}
+						</Button>
+					</DialogActions>
+				</Dialog>
+			</Box>
 		</Box>
 	);
 }

@@ -125,23 +125,61 @@ export default function ChatPage() {
 
 	const send = () => {
 		if (!activeUser?.id || !text.trim()) return;
-		socket.emit("chat:send", { toUserId: String(activeUser.id), content: text.trim() });
+		socket.emit("chat:send", {
+			toUserId: String(activeUser.id),
+			content: text.trim(),
+		});
 		setText("");
 	};
 
 	const onlineOthers = online.filter((u) => String(u.id) !== String(myId));
 
 	return (
-		<Box sx={{ p: { xs: 2, md: 3 }, maxWidth: 1100 }}>
+		<Box
+			sx={(theme) => ({
+				position: "relative",
+				p: { xs: 2, md: 3 },
+				maxWidth: 1100,
+
+				// ✅ Top gradient overlay (theme-driven)
+				"&:before": {
+					content: '""',
+					position: "absolute",
+					top: 0,
+					left: 0,
+					right: 0,
+					height: { xs: 180, md: 220 },
+					background: `linear-gradient(
+						180deg,
+						${theme.palette.tones?.blue?.bg ?? "rgba(59,130,246,0.12)"} 0%,
+						${theme.palette.tones?.green?.bg ?? "rgba(22,101,52,0.10)"} 45%,
+						transparent 85%
+					)`,
+					maskImage:
+						"linear-gradient(to bottom, rgba(0,0,0,1) 0%, rgba(0,0,0,1) 60%, rgba(0,0,0,0) 100%)",
+					WebkitMaskImage:
+						"linear-gradient(to bottom, rgba(0,0,0,1) 0%, rgba(0,0,0,1) 60%, rgba(0,0,0,0) 100%)",
+					pointerEvents: "none",
+					zIndex: 0,
+					borderRadius:2,
+				},
+
+				"& > *": { position: "relative", zIndex: 1 },
+			})}
+		>
 			<Typography variant="h4" sx={{ fontWeight: 700, mb: 2 }}>
 				Chat
 			</Typography>
 			<Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-				Chat with other users who are currently online. Select a user to start a conversation and exchange messages in real time.
+				Chat with other users who are currently online. Select a user to start a
+				conversation and exchange messages in real time.
 			</Typography>
 
-
-			<Stack direction={{ xs: "column", md: "row" }} spacing={2} alignItems="stretch">
+			<Stack
+				direction={{ xs: "column", md: "row" }}
+				spacing={2}
+				alignItems="stretch"
+			>
 				{/* Online users */}
 				<Card sx={{ width: { xs: "100%", md: 320 }, borderRadius: 2 }}>
 					<CardContent>
@@ -151,7 +189,6 @@ export default function ChatPage() {
 						<Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
 							{onlineOthers.length} user{onlineOthers.length === 1 ? "" : "s"} online
 						</Typography>
-
 
 						{onlineOthers.length === 0 ? (
 							<Typography variant="body2" color="text.secondary">
@@ -167,7 +204,12 @@ export default function ChatPage() {
 											selected={activeUser?.id === u.id}
 											onClick={() => startChat(u)}
 										>
-											<Stack direction="row" spacing={1.5} alignItems="center" sx={{ width: "100%" }}>
+											<Stack
+												direction="row"
+												spacing={1.5}
+												alignItems="center"
+												sx={{ width: "100%" }}
+											>
 												<Avatar
 													src={u.avatarUrl?.url || u.avatarUrl || undefined}
 													alt={u?.name?.first || u.email}
@@ -176,7 +218,9 @@ export default function ChatPage() {
 
 												<Stack sx={{ flex: 1, minWidth: 0 }}>
 													<Typography variant="body2" sx={{ fontWeight: 600 }} noWrap>
-														{u?.name?.first ? `${u.name.first} ${u.name.last || ""}` : u.email}
+														{u?.name?.first
+															? `${u.name.first} ${u.name.last || ""}`
+															: u.email}
 													</Typography>
 													<Typography variant="caption" color="text.secondary" noWrap>
 														{u.email}
@@ -184,7 +228,11 @@ export default function ChatPage() {
 												</Stack>
 
 												{!!unreadByUser[uid] && (
-													<Chip size="small" label={unreadByUser[uid]} sx={{ fontWeight: 700 }} />
+													<Chip
+														size="small"
+														label={unreadByUser[uid]}
+														sx={{ fontWeight: 700 }}
+													/>
 												)}
 											</Stack>
 										</ListItemButton>
@@ -197,7 +245,13 @@ export default function ChatPage() {
 
 				{/* Messages */}
 				<Card sx={{ flex: 1, borderRadius: 2 }}>
-					<CardContent sx={{ display: "flex", flexDirection: "column", height: { xs: 520, md: 620 } }}>
+					<CardContent
+						sx={{
+							display: "flex",
+							flexDirection: "column",
+							height: { xs: 520, md: 620 },
+						}}
+					>
 						<Typography variant="h6" sx={{ fontWeight: 700 }}>
 							{activeUser ? (
 								<Stack direction="row" spacing={1.5} alignItems="center">
@@ -238,7 +292,12 @@ export default function ChatPage() {
 											<Typography variant="body2">{m.content}</Typography>
 											<Typography
 												variant="caption"
-												sx={{ display: "block", mt: 0.5, opacity: 0.7, textAlign: "right" }}
+												sx={{
+													display: "block",
+													mt: 0.5,
+													opacity: 0.7,
+													textAlign: "right",
+												}}
 											>
 												{new Date(m.createdAt).toLocaleString()}
 											</Typography>
@@ -263,7 +322,12 @@ export default function ChatPage() {
 									}
 								}}
 							/>
-							<Button variant="contained" onClick={send} disabled={!activeUser || !text.trim()} sx={{ textTransform: "none" }}>
+							<Button
+								variant="contained"
+								onClick={send}
+								disabled={!activeUser || !text.trim()}
+								sx={{ textTransform: "none" }}
+							>
 								Send
 							</Button>
 						</Stack>

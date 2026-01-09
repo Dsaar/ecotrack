@@ -13,6 +13,7 @@ import {
 	CircularProgress,
 	Divider,
 	IconButton,
+	useTheme,
 } from "@mui/material";
 import { useNavigate, useParams } from "react-router-dom";
 import DeleteIcon from "@mui/icons-material/Delete";
@@ -37,6 +38,8 @@ export default function AdminMissionEditPage() {
 	const { id } = useParams();
 	const navigate = useNavigate();
 	const { showSuccess, showError } = useSnackbar();
+
+	const theme = useTheme();
 
 	const [loading, setLoading] = useState(true);
 	const [saving, setSaving] = useState(false);
@@ -200,7 +203,37 @@ export default function AdminMissionEditPage() {
 	}
 
 	return (
-		<Box sx={{ p: { xs: 2, md: 3 }, maxWidth: 900 }}>
+		<Box
+			sx={{
+				position: "relative",
+				p: { xs: 2, md: 3 },
+				maxWidth: 900,
+
+				// ✅ Top overlay from CustomThemeProvider tones
+				"&:before": {
+					content: '""',
+					position: "absolute",
+					borderRadius:2,
+					top: 0,
+					left: 0,
+					right: 0,
+					height: { xs: 180, md: 220 },
+					background: `linear-gradient(
+						180deg,
+						${theme.palette.tones?.blue?.bg ?? "rgba(59,130,246,0.12)"} 0%,
+						${theme.palette.tones?.green?.bg ?? "rgba(22,101,52,0.10)"} 45%,
+						transparent 85%
+					)`,
+					maskImage:
+						"linear-gradient(to bottom, rgba(0,0,0,1) 0%, rgba(0,0,0,1) 60%, rgba(0,0,0,0) 100%)",
+					WebkitMaskImage:
+						"linear-gradient(to bottom, rgba(0,0,0,1) 0%, rgba(0,0,0,1) 60%, rgba(0,0,0,0) 100%)",
+					pointerEvents: "none",
+					zIndex: 0,
+				},
+				"& > *": { position: "relative", zIndex: 1 },
+			}}
+		>
 			<Typography variant="h4" sx={{ fontWeight: 700, mb: 2 }}>
 				Edit mission
 			</Typography>
@@ -211,8 +244,22 @@ export default function AdminMissionEditPage() {
 						<TextField label="Title" value={form.title} onChange={onChange("title")} fullWidth />
 						<TextField label="Slug" value={form.slug} onChange={onChange("slug")} fullWidth />
 
-						<TextField label="Summary" value={form.summary} onChange={onChange("summary")} fullWidth multiline minRows={2} />
-						<TextField label="Description" value={form.description} onChange={onChange("description")} fullWidth multiline minRows={4} />
+						<TextField
+							label="Summary"
+							value={form.summary}
+							onChange={onChange("summary")}
+							fullWidth
+							multiline
+							minRows={2}
+						/>
+						<TextField
+							label="Description"
+							value={form.description}
+							onChange={onChange("description")}
+							fullWidth
+							multiline
+							minRows={4}
+						/>
 
 						<Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
 							<TextField select label="Category" value={form.category} onChange={onChange("category")} fullWidth>
@@ -266,7 +313,10 @@ export default function AdminMissionEditPage() {
 								control={<Switch checked={form.requiresSubmission} onChange={onChange("requiresSubmission")} />}
 								label="Requires submission"
 							/>
-							<FormControlLabel control={<Switch checked={form.isPublished} onChange={onChange("isPublished")} />} label="Published" />
+							<FormControlLabel
+								control={<Switch checked={form.isPublished} onChange={onChange("isPublished")} />}
+								label="Published"
+							/>
 						</Stack>
 
 						<Divider />
@@ -310,12 +360,28 @@ export default function AdminMissionEditPage() {
 												</Stack>
 
 												<Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
-													<TextField label="Key" value={f.key} onChange={(e) => updateSubmissionField(idx, "key", e.target.value)} fullWidth />
-													<TextField label="Label" value={f.label} onChange={(e) => updateSubmissionField(idx, "label", e.target.value)} fullWidth />
+													<TextField
+														label="Key"
+														value={f.key}
+														onChange={(e) => updateSubmissionField(idx, "key", e.target.value)}
+														fullWidth
+													/>
+													<TextField
+														label="Label"
+														value={f.label}
+														onChange={(e) => updateSubmissionField(idx, "label", e.target.value)}
+														fullWidth
+													/>
 												</Stack>
 
 												<Stack direction={{ xs: "column", sm: "row" }} spacing={2} alignItems="center">
-													<TextField select label="Type" value={f.type} onChange={(e) => updateSubmissionField(idx, "type", e.target.value)} fullWidth>
+													<TextField
+														select
+														label="Type"
+														value={f.type}
+														onChange={(e) => updateSubmissionField(idx, "type", e.target.value)}
+														fullWidth
+													>
 														{FIELD_TYPES.map((t) => (
 															<MenuItem key={t} value={t}>
 																{t}
@@ -324,7 +390,12 @@ export default function AdminMissionEditPage() {
 													</TextField>
 
 													<FormControlLabel
-														control={<Switch checked={!!f.required} onChange={(e) => updateSubmissionField(idx, "required", e.target.checked)} />}
+														control={
+															<Switch
+																checked={!!f.required}
+																onChange={(e) => updateSubmissionField(idx, "required", e.target.checked)}
+															/>
+														}
 														label="Required"
 													/>
 												</Stack>
