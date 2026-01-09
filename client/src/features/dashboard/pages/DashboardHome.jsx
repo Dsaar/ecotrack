@@ -63,6 +63,22 @@ function DashboardHome() {
 
 	const lastSubmission = submissions.length > 0 ? submissions[0] : null;
 
+	// ✅ Map submission status -> TonePanel tone (from CustomThemeProvider palette.tones)
+	const getToneFromStatus = (status) => {
+		switch (status) {
+			case "approved":
+				return "green";
+			case "pending":
+				return "amber";
+			case "rejected":
+				return "rejected";
+			default:
+				return "blue";
+		}
+	};
+
+	const latestTone = getToneFromStatus(lastSubmission?.status);
+
 	if (loading) {
 		return <LoadingSpinner fullScreen={false} />;
 	}
@@ -194,7 +210,8 @@ function DashboardHome() {
 										Here&apos;s your most recent mission submission:
 									</Typography>
 
-									<TonePanel tone="green" sx={{ mb: 2, color: "inherit" }}>
+									{/* ✅ status-colored latest tile using CustomThemeProvider tones */}
+									<TonePanel tone={latestTone} sx={{ mb: 2, color: "inherit" }}>
 										<Typography variant="subtitle1" sx={{ fontWeight: 800 }}>
 											{lastSubmission.missionId?.title ||
 												lastSubmission.missionTitle ||
@@ -259,7 +276,8 @@ function DashboardHome() {
 						) : (
 							<List dense>
 								{submissions.slice(0, 5).map((sub) => {
-									const missionTitle = sub.missionId?.title || sub.missionTitle || "Mission";
+									const missionTitle =
+										sub.missionId?.title || sub.missionTitle || "Mission";
 									const createdAt = sub.createdAt
 										? new Date(sub.createdAt).toLocaleString()
 										: "Unknown date";
