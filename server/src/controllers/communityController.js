@@ -1,5 +1,5 @@
 import User from "../models/Users.js";
-import Mission from "../models/Missions.js";
+import Missions from "../models/Missions.js";
 import Submission from "../models/Submission.js";
 
 export const getCommunityOverview = async (req, res) => {
@@ -180,5 +180,120 @@ export const getCommunityOverview = async (req, res) => {
 		return res
 			.status(500)
 			.json({ message: "Failed to load community overview" });
+	}
+};
+
+
+export const getCommunityOverviewPublic = async (req, res) => {
+	try {
+		// 1) All users (for points)
+		const users = await User.find({}, "points name").lean();
+		const membersCount = users.length || 0;
+
+		const totalEcoPoints = users.reduce((sum, u) => sum + (u.points || 0), 0);
+
+		// 2) Completed submissions (approved)
+		const completedSubs = await Submission.find({ status: "approved" })
+			.populate("missionId", "category estImpact points")
+			.lean();
+
+		const totalMissionsCompleted = completedSubs.length;
+
+		// Aggregate impact
+		let co2SavedKg = 0;
+		let waterSavedL = 0;
+		let wasteDivertedKg = 0;
+
+		completedSubs.forEach((sub) => {
+			const impact = sub.missionId?.estImpact || {};
+			co2SavedKg += impact.co2Kg || 0;
+			waterSavedL += impact.waterL || 0;
+			wasteDivertedKg += impact.wasteKg || 0;
+		});
+
+		// 3) Impact over time (monthly points)
+		const impactByMonth = {};
+		completedSubs.forEach((sub) => {
+			const date = sub.createdAt || sub.updatedAt;
+			if (!date) return;
+			const d = new Date(date);
+			const ym = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+
+			const pts = sub.missionId?.points || 10;
+
+			if (!impactByMonth[ym]) impactByMonth[ym] = { key: ym, points: 0 };
+			impactByMonth[ym].points += pts;
+		});
+
+		const impactOverTime = Object.values(impactByMonth)
+			.sort((a, b) => a.key.localeCompare(b.key))
+			.map((item) => {
+				const [year, month] = item.key.split("-");
+				const date = new Date(Number(year), Number(month) - 1, 1);
+				const label = date.toLocaleString("default", { month: "short" });
+				return { month: label, points: item.points };
+			});
+
+		// 4) Category distribution
+		const categoryCounts = {};
+		completedSubs.forEach((sub) => {
+			const cat = sub.missionId?.category || "Other";
+			categoryCounts[cat] = (categoryCounts[cat] || 0) + 1;
+		});
+
+		const categoryDistribution = Object.entries(categoryCounts).map(([name, value]) => ({
+			name,
+			value,
+		}));
+
+		// 5) Leaders by missions completed
+		const missionsByUser = {};
+		completedSubs.forEach((sub) => {
+			const uid = String(sub.userId);
+			missionsByUser[uid] = (missionsByUser[uid] || 0) + 1;
+		});
+
+		const usersWithMissionCounts = users.map((u) => ({
+			userId: String(u._id),
+			name: u.name?.first || "EcoTracker",
+			missions: missionsByUser[String(u._id)] || 0,
+		}));
+
+		const leadersByMissions = [...usersWithMissionCounts]
+			.sort((a, b) => b.missions - a.missions)
+			.slice(0, 10);
+
+		// 6) Leaders by points
+		const leadersByPoints = [...users]
+			.sort((a, b) => (b.points || 0) - (a.points || 0))
+			.slice(0, 10)
+			.map((u) => ({
+				userId: String(u._id),
+				name: u.name?.first || "EcoTracker",
+				points: u.points || 0,
+			}));
+
+		const communityStats = {
+			membersCount,
+			totalEcoPoints,
+			totalMissionsCompleted,
+			co2SavedKg,
+			waterSavedL,
+			wasteDivertedKg,
+			goalPointsTarget: 20000,
+		};
+
+		// ✅ public response has no myRank (or you can set it to null)
+		return res.json({
+			communityStats,
+			impactOverTime,
+			categoryDistribution,
+			leadersByPoints,
+			leadersByMissions,
+			myRank: null,
+		});
+	} catch (err) {
+		console.error("[getCommunityOverviewPublic]", err);
+		return res.status(500).json({ message: "Failed to load community overview" });
 	}
 };

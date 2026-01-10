@@ -37,6 +37,19 @@ app.use(morgan("dev"));
 // === HEALTHCHECK ===
 app.get("/health", (_req, res) => res.json({ ok: true }));
 
+// Disable ETag so Express won't return 304 for API JSON
+app.set("etag", false);
+
+// No-cache headers for API routes
+app.use("/api", (req, res, next) => {
+	res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate");
+	res.setHeader("Pragma", "no-cache");
+	res.setHeader("Expires", "0");
+	res.setHeader("Surrogate-Control", "no-store");
+	next();
+});
+
+
 // === MAIN API ROUTES ===
 app.use("/api/auth", authRoutes);          // register, login, me (auth)
 app.use("/api/users", userRoutes);         // user self & admin routes

@@ -1,4 +1,5 @@
 // src/features/landing/pages/HomePage.jsx
+import { useEffect, useMemo, useState } from "react";
 import {
 	Box,
 	Button,
@@ -8,16 +9,64 @@ import {
 	LinearProgress,
 	Stack,
 	Typography,
+	CircularProgress,
 } from "@mui/material";
 import { useNavigate } from "react-router-dom";
+
+// ✅ make sure you have this service function (see below)
+import { getCommunityOverviewPublic } from "../../../services/communityService.js";
 
 function HomePage() {
 	const navigate = useNavigate();
 
+	const [loading, setLoading] = useState(true);
+	const [error, setError] = useState("");
+	const [communityStats, setCommunityStats] = useState(null);
+
+	useEffect(() => {
+		let cancelled = false;
+
+		(async () => {
+			try {
+				setLoading(true);
+				setError("");
+
+				const data = await getCommunityOverviewPublic();
+
+				// Expecting: { communityStats: {...}, ... }
+				if (!cancelled) setCommunityStats(data?.communityStats || null);
+			} catch (err) {
+				console.error("[HomePage] failed to load community overview", err);
+				if (!cancelled)
+					setError(
+						err?.response?.data?.message ||
+						"Failed to load community impact. Please try again."
+					);
+			} finally {
+				if (!cancelled) setLoading(false);
+			}
+		})();
+
+		return () => {
+			cancelled = true;
+		};
+	}, []);
+
+	const co2SavedKg = Number(communityStats?.co2SavedKg || 0);
+	const waterSavedL = Number(communityStats?.waterSavedL || 0);
+	const totalEcoPoints = Number(communityStats?.totalEcoPoints || 0);
+	const goalPointsTarget = Number(communityStats?.goalPointsTarget || 20000);
+
+	const progressPct = useMemo(() => {
+		if (!goalPointsTarget) return 0;
+		const pct = (totalEcoPoints / goalPointsTarget) * 100;
+		return Math.max(0, Math.min(100, pct));
+	}, [totalEcoPoints, goalPointsTarget]);
+
 	return (
 		<Box
 			sx={{
-				minHeight: "calc(100vh - 300px)", // header + footer space
+				minHeight: "calc(100vh - 300px)",
 				bgcolor: "background.default",
 				display: "flex",
 				alignItems: "center",
@@ -34,11 +83,7 @@ function HomePage() {
 						<Typography
 							component="h1"
 							variant="h3"
-							sx={{
-								fontWeight: 700,
-								letterSpacing: -0.5,
-								mb: 2,
-							}}
+							sx={{ fontWeight: 700, letterSpacing: -0.5, mb: 2 }}
 						>
 							See your impact.
 							<br />
@@ -90,72 +135,74 @@ function HomePage() {
 							}}
 						>
 							<CardContent sx={{ p: 4 }}>
-								<Typography
-									variant="body2"
-									color="text.secondary"
-									sx={{ mb: 2 }}
-								>
-									Community impact (demo data)
+								<Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+									Community impact
 								</Typography>
 
-								<Stack
-									direction={{ xs: "column", sm: "row" }}
-									spacing={2}
-									sx={{ mb: 3 }}
-								>
-									<Box
-										sx={{
-											flex: 1,
-											p: 2,
-											borderRadius: 3,
-											bgcolor: "success.light",
-											color: "success.contrastText",
-										}}
-									>
-										<Typography variant="caption">CO₂ Reduced</Typography>
-										<Typography
-											variant="h5"
-											sx={{ fontWeight: 700, mt: 0.5 }}
-										>
-											–210 kg
-										</Typography>
+								{loading ? (
+									<Box sx={{ display: "flex", justifyContent: "center", py: 4 }}>
+										<CircularProgress size={28} />
 									</Box>
-
-									<Box
-										sx={{
-											flex: 1,
-											p: 2,
-											borderRadius: 3,
-											bgcolor: "info.light",
-											color: "info.contrastText",
-										}}
-									>
-										<Typography variant="caption">Water Saved</Typography>
-										<Typography
-											variant="h5"
-											sx={{ fontWeight: 700, mt: 0.5 }}
+								) : error ? (
+									<Typography color="error" variant="body2">
+										{error}
+									</Typography>
+								) : (
+									<>
+										<Stack
+											direction={{ xs: "column", sm: "row" }}
+											spacing={2}
+											sx={{ mb: 3 }}
 										>
-											3150 liters
-										</Typography>
-									</Box>
-								</Stack>
+											<Box
+												sx={{
+													flex: 1,
+													p: 2,
+													borderRadius: 3,
+													bgcolor: "success.light",
+													color: "success.contrastText",
+												}}
+											>
+												<Typography variant="caption">CO₂ Reduced</Typography>
+												<Typography variant="h5" sx={{ fontWeight: 700, mt: 0.5 }}>
+													{Math.round(co2SavedKg)} kg
+												</Typography>
+											</Box>
 
-								<Typography
-									variant="body2"
-									sx={{ fontWeight: 500, mb: 1 }}
-								>
-									Community Missions Progress
-								</Typography>
-								<LinearProgress
-									variant="determinate"
-									value={60}
-									sx={{
-										height: 8,
-										borderRadius: 999,
-										mb: 1,
-									}}
-								/>
-								<Typography variant="body2" color="text.secondary">
+											<Box
+												sx={{
+													flex: 1,
+													p: 2,
+													borderRadius: 3,
+													bgcolor: "info.light",
+													color: "info.contrastText",
+												}}
+											>
+												<Typography variant="caption">Water Saved</Typography>
+												<Typography variant="h5" sx={{ fontWeight: 700, mt: 0.5 }}>
+													{Math.round(waterSavedL)} liters
+												</Typography>
+											</Box>
+										</Stack>
+
+										<Typography variant="body2" sx={{ fontWeight: 500, mb: 1 }}>
+											Community Missions Progress
+										</Typography>
+
+										<LinearProgress
+											variant="determinate"
+											value={progressPct}
+											sx={{ height: 8, borderRadius: 999, mb: 1 }}
+										/>
+
+										<Typography variant="body2" color="text.secondary">
+											{Math.round(progressPct)}% toward our goal ({totalEcoPoints.toLocaleString()} /{" "}
+											{goalPointsTarget.toLocaleString()} eco points)
+										</Typography>
+									</>
+								)}
+
+								<Typography variant="body2" color="text.secondary" sx={{ mt: 2 }}>
 									Sign in to see your personal impact.
 								</Typography>
 							</CardContent>
