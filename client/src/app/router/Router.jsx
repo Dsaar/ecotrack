@@ -1,5 +1,5 @@
 // src/app/router/Router.jsx
-import { Routes, Route, Navigate } from "react-router-dom";
+import { Routes, Route, Navigate, useLocation } from "react-router-dom";
 import Layout from "../layout/Layout.jsx";
 import HomePage from "../../features/landing/pages/HomePage.jsx";
 import MissionDetailsPage from "../../features/missions/pages/MissionDetailsPage.jsx";
@@ -26,8 +26,25 @@ import ForgotPasswordPage from "../../features/auth/pages/ForgotPasswordPage.jsx
 import ResetPasswordPage from "../../features/auth/pages/ResetPasswordPage.jsx";
 import ChatPage from "../../features/dashboard/pages/ChatPage.jsx";
 import { SearchProvider } from "../providers/SearchProvider.jsx";
-import AboutPage from "../../features/landing/pages/AboutPage.jsx"; // <- adjust path if needed
+import AboutPage from "../../features/landing/pages/AboutPage.jsx";
 
+// ✅ Framer Motion (smooth page transitions for content only)
+import { AnimatePresence, motion } from "framer-motion";
+
+// ✅ Only the "page body" animates, not TopBar / Sidebar (they live in DashboardLayout)
+function PageTransition({ children }) {
+	return (
+		<motion.div
+			initial={{ opacity: 0, y: 10 }}
+			animate={{ opacity: 1, y: 0 }}
+			exit={{ opacity: 0, y: -10 }}
+			transition={{ duration: 0.18, ease: "easeOut" }}
+			style={{ height: "100%" }}
+		>
+			{children}
+		</motion.div>
+	);
+}
 
 // ✅ Protect dashboard routes
 function ProtectedRoute({ children }) {
@@ -50,11 +67,18 @@ function AdminRoute({ children }) {
 }
 
 function Router() {
-	// ✅ Wrap *all* dashboard pages (user + admin) with SearchProvider
+	const location = useLocation();
+
+	// ✅ Dashboard wrapper: keep DashboardLayout mounted (TopBar + Sidebar unchanged),
+	// ✅ animate ONLY the page content inside it.
 	const wrapDashboard = (PageComponent) => (
 		<SearchProvider>
 			<DashboardLayout>
-				<PageComponent />
+				<AnimatePresence mode="wait">
+					<PageTransition key={location.pathname}>
+						<PageComponent />
+					</PageTransition>
+				</AnimatePresence>
 			</DashboardLayout>
 		</SearchProvider>
 	);
@@ -87,6 +111,7 @@ function Router() {
 					</Layout>
 				}
 			/>
+
 			<Route
 				path="/about"
 				element={
