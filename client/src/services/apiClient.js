@@ -50,6 +50,29 @@ apiClient.interceptors.response.use(
 			);
 		}
 
+		// ✅ RATE LIMIT (429) -> show nice snackbar
+		if (error.response?.status === 429) {
+			// Backend message (your limiter sends { message: "..." })
+			const msg =
+				error.response?.data?.message ||
+				"Too many requests. Please wait and try again.";
+
+			// express-rate-limit usually includes standard headers (draft-8)
+			// Retry-After may exist (seconds); RateLimit-Reset is a timestamp (seconds)
+			const retryAfter = error.response?.headers?.["retry-after"]; // seconds
+			const reset = error.response?.headers?.["ratelimit-reset"]; // seconds since epoch (often)
+
+			window.dispatchEvent(
+				new CustomEvent("app:rate-limit", {
+					detail: {
+						message: msg,
+						retryAfter: retryAfter ? Number(retryAfter) : null,
+						reset: reset ? Number(reset) : null,
+					},
+				})
+			);
+		}
+
 		// ✅ Normalize Joi 400 errors for forms
 		if (error.response?.status === 400) {
 			const data = error.response?.data;

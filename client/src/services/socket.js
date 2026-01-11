@@ -6,7 +6,7 @@ export function getSocket() {
 	if (socket) return socket;
 
 	// You already return token from auth; store it in localStorage or your UserProvider.
-	const token = localStorage.getItem("token"); // adjust to your project
+	const token = localStorage.getItem("myToken"); // adjust to your project
 
 	socket = io("http://localhost:5050", {
 		auth: { token },

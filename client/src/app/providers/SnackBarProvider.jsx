@@ -1,5 +1,5 @@
 // src/app/providers/SnackbarProvider.jsx
-import { createContext, useCallback, useContext, useState } from "react";
+import { createContext, useCallback, useContext, useEffect, useState } from "react";
 import { Snackbar, Alert } from "@mui/material";
 
 const SnackbarContext = createContext(null);
@@ -21,6 +21,25 @@ export function SnackbarProvider({ children }) {
 		setSnackbar((prev) => ({ ...prev, open: false }));
 	};
 
+	// ✅ Listen for rate limit events from apiClient (429)
+	useEffect(() => {
+		const onRateLimit = (e) => {
+			const msg = e?.detail?.message || "Too many requests. Please try again later.";
+
+			// Optional: nicer message when retry-after exists
+			const retryAfter = e?.detail?.retryAfter;
+			const finalMsg =
+				typeof retryAfter === "number" && Number.isFinite(retryAfter) && retryAfter > 0
+					? `${msg} Try again in ~${retryAfter}s.`
+					: msg;
+
+			showSnackbar(finalMsg, "warning");
+		};
+
+		window.addEventListener("app:rate-limit", onRateLimit);
+		return () => window.removeEventListener("app:rate-limit", onRateLimit);
+	}, [showSnackbar]);
+
 	const value = {
 		showSuccess: (msg) => showSnackbar(msg, "success"),
 		showError: (msg) => showSnackbar(msg, "error"),
@@ -37,11 +56,7 @@ export function SnackbarProvider({ children }) {
 				onClose={handleClose}
 				anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
 			>
-				<Alert
-					onClose={handleClose}
-					severity={snackbar.severity}
-					sx={{ width: "100%" }}
-				>
+				<Alert onClose={handleClose} severity={snackbar.severity} sx={{ width: "100%" }}>
 					{snackbar.message}
 				</Alert>
 			</Snackbar>
