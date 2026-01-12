@@ -1,33 +1,42 @@
+// src/controllers/communityController.js
 import User from "../models/Users.js";
 import Missions from "../models/Missions.js";
 import Submission from "../models/Submission.js";
+import CommunitySettings from "../models/ComunitySettings.js";
+
+// helper: always have exactly one settings doc
+async function getOrCreateCommunitySettings() {
+	let settings = await CommunitySettings.findOne().lean();
+	if (!settings) {
+		const created = await CommunitySettings.create({ goalPointsTarget: 20000 });
+		settings = created.toObject();
+	}
+	return settings;
+}
 
 export const getCommunityOverview = async (req, res) => {
 	try {
 		const currentUserId = String(req.user.id);
 
+		// ✅ Load configurable settings (goalPointsTarget)
+		const settings = await getOrCreateCommunitySettings();
+
 		// 1) All users (for points + rank)
 		const users = await User.find({}, "points name").lean();
 		const membersCount = users.length || 0;
 
-		const totalEcoPoints = users.reduce(
-			(sum, u) => sum + (u.points || 0),
-			0
-		);
+		const totalEcoPoints = users.reduce((sum, u) => sum + (u.points || 0), 0);
 
 		// current user points
 		const me = users.find((u) => String(u._id) === currentUserId);
 		const myPoints = me?.points || 0;
 
 		// Rank by points
-		const usersByPoints = [...users].sort(
-			(a, b) => (b.points || 0) - (a.points || 0)
-		);
+		const usersByPoints = [...users].sort((a, b) => (b.points || 0) - (a.points || 0));
 		const myPointsRankIndex = usersByPoints.findIndex(
 			(u) => String(u._id) === currentUserId
 		);
-		const myPointsRank =
-			myPointsRankIndex === -1 ? null : myPointsRankIndex + 1;
+		const myPointsRank = myPointsRankIndex === -1 ? null : myPointsRankIndex + 1;
 
 		// 2) Completed submissions (status = "approved")
 		const completedSubs = await Submission.find({ status: "approved" })
@@ -54,9 +63,7 @@ export const getCommunityOverview = async (req, res) => {
 			const date = sub.createdAt || sub.updatedAt;
 			if (!date) return;
 			const d = new Date(date);
-			const ym = `${d.getFullYear()}-${String(
-				d.getMonth() + 1
-			).padStart(2, "0")}`;
+			const ym = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
 
 			// use mission points or default 10
 			const pts = sub.missionId?.points || 10;
@@ -83,9 +90,10 @@ export const getCommunityOverview = async (req, res) => {
 			categoryCounts[cat] = (categoryCounts[cat] || 0) + 1;
 		});
 
-		const categoryDistribution = Object.entries(categoryCounts).map(
-			([name, value]) => ({ name, value })
-		);
+		const categoryDistribution = Object.entries(categoryCounts).map(([name, value]) => ({
+			name,
+			value,
+		}));
 
 		// 5) Leaders by missions completed
 		const missionsByUser = {};
@@ -105,9 +113,7 @@ export const getCommunityOverview = async (req, res) => {
 			.slice(0, 10);
 
 		const myMissionsCompleted =
-			missionsByUser[currentUserId] !== undefined
-				? missionsByUser[currentUserId]
-				: 0;
+			missionsByUser[currentUserId] !== undefined ? missionsByUser[currentUserId] : 0;
 
 		const usersSortedByMissions = [...usersWithMissionCounts].sort(
 			(a, b) => b.missions - a.missions
@@ -115,8 +121,7 @@ export const getCommunityOverview = async (req, res) => {
 		const myMissionsRankIndex = usersSortedByMissions.findIndex(
 			(u) => u.userId === currentUserId
 		);
-		const myMissionsRank =
-			myMissionsRankIndex === -1 ? null : myMissionsRankIndex + 1;
+		const myMissionsRank = myMissionsRankIndex === -1 ? null : myMissionsRankIndex + 1;
 
 		// 6) Leaders by points (top 10)
 		const leadersByPoints = usersByPoints.slice(0, 10).map((u) => ({
@@ -133,7 +138,7 @@ export const getCommunityOverview = async (req, res) => {
 			co2SavedKg,
 			waterSavedL,
 			wasteDivertedKg,
-			goalPointsTarget: 20000, // can be made configurable later
+			goalPointsTarget: settings.goalPointsTarget, // ✅ now configurable
 		};
 
 		const myRank = {
@@ -143,12 +148,7 @@ export const getCommunityOverview = async (req, res) => {
 				points: myPoints,
 				aheadOfPercent:
 					myPointsRank && membersCount
-						? Number(
-							(
-								((membersCount - myPointsRank) / membersCount) *
-								100
-							).toFixed(1)
-						)
+						? Number((((membersCount - myPointsRank) / membersCount) * 100).toFixed(1))
 						: null,
 			},
 			byMissions: {
@@ -157,12 +157,7 @@ export const getCommunityOverview = async (req, res) => {
 				missionsCompleted: myMissionsCompleted,
 				aheadOfPercent:
 					myMissionsRank && membersCount
-						? Number(
-							(
-								((membersCount - myMissionsRank) / membersCount) *
-								100
-							).toFixed(1)
-						)
+						? Number((((membersCount - myMissionsRank) / membersCount) * 100).toFixed(1))
 						: null,
 			},
 		};
@@ -177,15 +172,15 @@ export const getCommunityOverview = async (req, res) => {
 		});
 	} catch (err) {
 		console.error("[getCommunityOverview]", err);
-		return res
-			.status(500)
-			.json({ message: "Failed to load community overview" });
+		return res.status(500).json({ message: "Failed to load community overview" });
 	}
 };
 
-
 export const getCommunityOverviewPublic = async (req, res) => {
 	try {
+		// ✅ Load configurable settings (goalPointsTarget)
+		const settings = await getOrCreateCommunitySettings();
+
 		// 1) All users (for points)
 		const users = await User.find({}, "points name").lean();
 		const membersCount = users.length || 0;
@@ -280,10 +275,9 @@ export const getCommunityOverviewPublic = async (req, res) => {
 			co2SavedKg,
 			waterSavedL,
 			wasteDivertedKg,
-			goalPointsTarget: 20000,
+			goalPointsTarget: settings.goalPointsTarget, // ✅ now configurable
 		};
 
-		// ✅ public response has no myRank (or you can set it to null)
 		return res.json({
 			communityStats,
 			impactOverTime,
@@ -295,5 +289,40 @@ export const getCommunityOverviewPublic = async (req, res) => {
 	} catch (err) {
 		console.error("[getCommunityOverviewPublic]", err);
 		return res.status(500).json({ message: "Failed to load community overview" });
+	}
+};
+
+// Public (or authed) read settings
+export const getCommunitySettings = async (_req, res) => {
+	try {
+		const settings = await getOrCreateCommunitySettings();
+		return res.json({ settings });
+	} catch (err) {
+		console.error("[getCommunitySettings]", err);
+		return res.status(500).json({ message: "Failed to load community settings" });
+	}
+};
+
+// Admin update settings
+export const updateCommunitySettings = async (req, res) => {
+	try {
+		const goalPointsTarget = Number(req.body.goalPointsTarget);
+
+		if (!Number.isFinite(goalPointsTarget) || goalPointsTarget < 0) {
+			return res
+				.status(400)
+				.json({ message: "goalPointsTarget must be a non-negative number" });
+		}
+
+		const updated = await CommunitySettings.findOneAndUpdate(
+			{},
+			{ $set: { goalPointsTarget } },
+			{ new: true, upsert: true }
+		).lean();
+
+		return res.json({ settings: updated });
+	} catch (err) {
+		console.error("[updateCommunitySettings]", err);
+		return res.status(500).json({ message: "Failed to update community settings" });
 	}
 };
