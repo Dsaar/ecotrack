@@ -35,6 +35,11 @@ function DashboardMissionDetails() {
 	const [submitOpen, setSubmitOpen] = useState(false);
 
 	useEffect(() => {
+		if (!id || id === "undefined") {
+			setLoading(false);
+			setMission(null);
+			return;
+		}
 		let cancelled = false;
 
 		const load = async () => {
