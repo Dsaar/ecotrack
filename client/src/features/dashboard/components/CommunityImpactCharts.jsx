@@ -25,12 +25,12 @@ import { useRef } from "react";
 import useInView from "../../../shared/hooks/useInView.js";
 
 const CATEGORY_COLORS = [
-	"#166534",
+	"#1c7a40ff",
 	"#22c55e",
 	"#1690a3ff",
-	"#cc6816ff",
-	"#22c55e",
-	"#4ade80",
+	"#cc9516ff",
+	"#c54322ff",
+	"#dcde4aff",
 ];
 
 function CommunityImpactCharts({ impactOverTime, categoryDistribution }) {
