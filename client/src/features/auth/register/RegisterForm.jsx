@@ -123,35 +123,33 @@ function RegisterForm() {
 			<RegisterContactFields form={form} onChange={handleChange} />
 
 			{/* Password fields */}
-			<Grid container spacing={2}>
-				<Grid item xs={12} sm={6}>
-					<PasswordField
-						label="Password"
-						name="password"
-						value={form.password}
-						onChange={handleChange}
-						fullWidth
-						required
-						error={!!errors.password}
-						helperText={
-							errors.password ||
-							"At least 8 chars, with upper, lower, number and symbol."
-						}
-					/>
-				</Grid>
-				<Grid item xs={12} sm={6}>
-					<PasswordField
-						label="Confirm password"
-						name="confirmPassword"
-						value={form.confirmPassword}
-						onChange={handleChange}
-						fullWidth
-						required
-						error={!!errors.confirmPassword}
-						helperText={errors.confirmPassword}
-					/>
-				</Grid>
-			</Grid>
+			<Stack spacing={2}>
+				<PasswordField
+					label="Password"
+					name="password"
+					value={form.password}
+					onChange={handleChange}
+					fullWidth
+					required
+					error={!!errors.password}
+					helperText={
+						errors.password ||
+						"At least 8 chars, with upper, lower, number and symbol."
+					}
+				/>
+
+				<PasswordField
+					label="Confirm password"
+					name="confirmPassword"
+					value={form.confirmPassword}
+					onChange={handleChange}
+					fullWidth
+					required
+					error={!!errors.confirmPassword}
+					helperText={errors.confirmPassword}
+				/>
+			</Stack>
+
 
 			<RegisterAddressFields form={form} onChange={handleChange} />
 			<RegisterAvatarFields form={form} onChange={handleChange} />
