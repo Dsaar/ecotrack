@@ -115,9 +115,10 @@ export const getUserById = async (req, res) => {
 
 // ---- Admin only ----
 export const listUsers = async (_req, res) => {
-	const users = await User.find().select("name email phone isAdmin points");
-	res.json(users);
+	const users = await User.find().select("name email phone isAdmin points avatarUrl");
+	return res.json(users);
 };
+
 
 export const deleteUser = async (req, res) => {
 	try {

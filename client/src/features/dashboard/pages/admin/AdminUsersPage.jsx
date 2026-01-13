@@ -1,6 +1,7 @@
 // src/features/dashboard/pages/admin/AdminUsersPage.jsx
 import { useEffect, useMemo, useState } from "react";
 import {
+	Avatar,
 	Box,
 	Card,
 	CardContent,
@@ -83,6 +84,20 @@ export default function AdminUsersPage() {
 			cancelled = true;
 		};
 	}, [showError]);
+
+	const getAvatarSrc = (u) => {
+		// supports { avatarUrl: { url, alt } } and also a plain string (just in case)
+		if (!u) return "";
+		if (typeof u.avatarUrl === "string") return u.avatarUrl;
+		return u.avatarUrl?.url || "";
+	};
+
+	const getDisplayName = (u) => {
+		const first = u?.name?.first || "";
+		const last = u?.name?.last || "";
+		const full = `${first} ${last}`.trim();
+		return full || "—";
+	};
 
 	const handleToggleAdmin = async (u) => {
 		const next = !u.isAdmin;
@@ -169,13 +184,12 @@ export default function AdminUsersPage() {
 		);
 	}
 
-	// ✅ Pagination (same pattern as Missions/Favorites)
+	// ✅ Pagination
 	const PAGE_SIZE_OPTIONS = [6, 12, 24];
 
 	const [page, setPage] = useState(1);
 	const [pageSize, setPageSize] = useState(6);
 
-	// reset to page 1 when search changes or page size changes
 	useEffect(() => {
 		setPage(1);
 	}, [q, pageSize]);
@@ -196,11 +210,10 @@ export default function AdminUsersPage() {
 				p: { xs: 2, md: 3 },
 				maxWidth: 1100,
 
-				// ✅ Top overlay (theme-driven, fades out smoothly)
 				"&:before": {
 					content: '""',
 					position: "absolute",
-					borderRadius:2,
+					borderRadius: 2,
 					top: 0,
 					left: 0,
 					right: 0,
@@ -298,24 +311,33 @@ export default function AdminUsersPage() {
 						// ✅ Mobile: cards
 						<Stack spacing={1.25}>
 							{pagedUsers.map((u) => {
-								const name = u?.name?.first
-									? `${u.name.first} ${u.name.last || ""}`
-									: "—";
+								const name = getDisplayName(u);
 								const isSelf = String(user?._id) === String(u._id);
 
 								return (
-									<Card key={u._id} variant="outlined" sx={{ borderRadius: 3, overflow: "hidden" }}>
+									<Card
+										key={u._id}
+										variant="outlined"
+										sx={{ borderRadius: 3, overflow: "hidden" }}
+									>
 										<CardContent sx={{ p: 1.5 }}>
 											<Stack spacing={1}>
 												<Stack direction="row" alignItems="center" justifyContent="space-between">
-													<Box sx={{ minWidth: 0 }}>
-														<Typography sx={{ fontWeight: 800 }} noWrap>
-															{name}
-														</Typography>
-														<Typography variant="body2" color="text.secondary" noWrap>
-															{u.email}
-														</Typography>
-													</Box>
+													<Stack direction="row" spacing={1.25} alignItems="center" sx={{ minWidth: 0 }}>
+														<Avatar
+															src={getAvatarSrc(u)}
+															alt={name}
+															sx={{ width: 34, height: 34, flexShrink: 0 }}
+														/>
+														<Box sx={{ minWidth: 0 }}>
+															<Typography sx={{ fontWeight: 800 }} noWrap>
+																{name}
+															</Typography>
+															<Typography variant="body2" color="text.secondary" noWrap>
+																{u.email}
+															</Typography>
+														</Box>
+													</Stack>
 
 													<Tooltip title={isSelf ? "You can’t delete yourself" : "Delete user"}>
 														<span>
@@ -347,13 +369,13 @@ export default function AdminUsersPage() {
 							})}
 						</Stack>
 					) : (
-						// ✅ Desktop/tablet: table (with safe overflow)
+						// ✅ Desktop/tablet: table
 						<TableContainer sx={{ overflowX: "auto" }}>
 							<Table>
 								<TableHead>
 									<TableRow>
 										<TableCell>
-											<b>Name</b>
+											<b>User</b>
 										</TableCell>
 										<TableCell>
 											<b>Email</b>
@@ -371,30 +393,41 @@ export default function AdminUsersPage() {
 								</TableHead>
 
 								<TableBody>
-									{pagedUsers.map((u) => (
-										<TableRow key={u._id}>
-											<TableCell>
-												{u?.name?.first ? `${u.name.first} ${u.name.last || ""}` : "—"}
-											</TableCell>
-											<TableCell>{u.email}</TableCell>
-											<TableCell>{u.phone || "—"}</TableCell>
-											<TableCell>
-												<Switch checked={!!u.isAdmin} onChange={() => handleToggleAdmin(u)} />
-											</TableCell>
-											<TableCell align="right">
-												<Tooltip title="Delete user">
-													<span>
-														<IconButton
-															onClick={() => openDelete(u)}
-															disabled={String(user?._id) === String(u._id)}
-														>
-															<DeleteIcon />
-														</IconButton>
-													</span>
-												</Tooltip>
-											</TableCell>
-										</TableRow>
-									))}
+									{pagedUsers.map((u) => {
+										const name = getDisplayName(u);
+										const isSelf = String(user?._id) === String(u._id);
+
+										return (
+											<TableRow key={u._id}>
+												<TableCell>
+													<Stack direction="row" spacing={1.25} alignItems="center">
+														<Avatar
+															src={getAvatarSrc(u)}
+															alt={name}
+															sx={{ width: 30, height: 30 }}
+														/>
+														<Typography variant="body2" sx={{ fontWeight: 600 }}>
+															{name}
+														</Typography>
+													</Stack>
+												</TableCell>
+												<TableCell>{u.email}</TableCell>
+												<TableCell>{u.phone || "—"}</TableCell>
+												<TableCell>
+													<Switch checked={!!u.isAdmin} onChange={() => handleToggleAdmin(u)} />
+												</TableCell>
+												<TableCell align="right">
+													<Tooltip title={isSelf ? "You can’t delete yourself" : "Delete user"}>
+														<span>
+															<IconButton onClick={() => openDelete(u)} disabled={isSelf}>
+																<DeleteIcon />
+															</IconButton>
+														</span>
+													</Tooltip>
+												</TableCell>
+											</TableRow>
+										);
+									})}
 								</TableBody>
 							</Table>
 						</TableContainer>

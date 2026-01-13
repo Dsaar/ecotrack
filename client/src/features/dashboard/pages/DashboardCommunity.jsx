@@ -29,7 +29,27 @@ function DashboardCommunity() {
 	} = communityData;
 
 	return (
-		<Box sx={{ p: { xs: 2, md: 3 }, maxWidth: 1200, position: "relative" }}>
+		<Box
+			sx={(theme) => ({
+				p: { xs: 2, md: 3 },
+				maxWidth: 1100,
+				position: "relative",
+
+				// ✅ subtle top gradient (global dashboard vibe)
+				"&:before": {
+					content: '""',
+					position: "absolute",
+					left: 0,
+					right: 0,
+					top: 0,
+					height: 180,
+					borderRadius: 2,
+					background: `linear-gradient(180deg, ${theme.palette.tones.green.bg} 0%, transparent 75%)`,
+					pointerEvents: "none",
+				},
+			})}
+		>
+			{/* ✅ keep all content above the gradient */}
 			<Box sx={{ position: "relative" }}>
 				<Typography variant="h4" sx={{ fontWeight: 700, mb: 1 }}>
 					EcoTrack Community

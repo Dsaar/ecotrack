@@ -22,7 +22,11 @@ export const getCommunityOverview = async (req, res) => {
 		const settings = await getOrCreateCommunitySettings();
 
 		// 1) All users (for points + rank)
-		const users = await User.find({}, "points name").lean();
+		const users = await User.find(
+			{},
+			"points name avatarUrl.url avatarUrl.alt"
+		).lean();
+
 		const membersCount = users.length || 0;
 
 		const totalEcoPoints = users.reduce((sum, u) => sum + (u.points || 0), 0);
@@ -105,8 +109,11 @@ export const getCommunityOverview = async (req, res) => {
 		const usersWithMissionCounts = users.map((u) => ({
 			userId: String(u._id),
 			name: u.name?.first || "EcoTracker",
+			avatarUrl: u.avatarUrl?.url || null,
 			missions: missionsByUser[String(u._id)] || 0,
 		}));
+
+
 
 		const leadersByMissions = [...usersWithMissionCounts]
 			.sort((a, b) => b.missions - a.missions)
@@ -127,8 +134,10 @@ export const getCommunityOverview = async (req, res) => {
 		const leadersByPoints = usersByPoints.slice(0, 10).map((u) => ({
 			userId: String(u._id),
 			name: u.name?.first || "EcoTracker",
+			avatarUrl: u.avatarUrl?.url || null,
 			points: u.points || 0,
 		}));
+
 
 		// 7) My rank summaries
 		const communityStats = {
