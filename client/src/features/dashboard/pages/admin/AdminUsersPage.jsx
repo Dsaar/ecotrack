@@ -1,45 +1,16 @@
 // src/features/dashboard/pages/admin/AdminUsersPage.jsx
-import { useEffect, useMemo, useState } from "react";
-import {
-	Avatar,
-	Box,
-	Card,
-	CardContent,
-	Typography,
-	Table,
-	TableBody,
-	TableCell,
-	TableHead,
-	TableRow,
-	Switch,
-	IconButton,
-	Tooltip,
-	Dialog,
-	DialogTitle,
-	DialogContent,
-	DialogActions,
-	Button,
-	Stack,
-	TableContainer,
-	useMediaQuery,
-	useTheme,
-	Divider,
-	FormControl,
-	InputLabel,
-	Select,
-	MenuItem,
-	Pagination,
-} from "@mui/material";
-import DeleteIcon from "@mui/icons-material/Delete";
+import { Box, Card, CardContent, Typography, Stack, useMediaQuery, useTheme } from "@mui/material";
 
 import { useSnackbar } from "../../../../app/providers/SnackBarProvider.jsx";
 import { useUser } from "../../../../app/providers/UserProvider.jsx";
 import { useSearch } from "../../../../app/providers/SearchProvider.jsx";
-import {
-	getAllUsersAdmin,
-	setUserAdminStatus,
-	deleteUserAdmin,
-} from "../../../../services/userService.js";
+
+import useAdminUsers from "./hooks/useAdminUsers.js";
+import UsersHeader from "./components/UsersHeader.jsx";
+import UsersPaginationBar from "./components/UsersPaginationBar.jsx";
+import UsersMobileList from "./components/UsersMobileList.jsx";
+import UsersTable from "./components/UsersTable.jsx";
+import DeleteUserDialog from "./components/DeleteUserDialog.jsx";
 
 export default function AdminUsersPage() {
 	const { user } = useUser();
@@ -50,131 +21,36 @@ export default function AdminUsersPage() {
 	// ✅ SearchProvider (TopBar search)
 	const { query, setQuery } = useSearch();
 
-	const [users, setUsers] = useState([]);
-	const [loading, setLoading] = useState(true);
-
-	const [deleteOpen, setDeleteOpen] = useState(false);
-	const [deleteTarget, setDeleteTarget] = useState(null);
-	const [deleting, setDeleting] = useState(false);
-
 	const theme = useTheme();
 	const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
 
-	// ✅ Clear search when leaving this page
-	useEffect(() => {
-		return () => setQuery("");
-	}, [setQuery]);
+	const {
+		users,
+		loading,
 
-	useEffect(() => {
-		let cancelled = false;
+		q,
+		filteredUsers,
+		pagedUsers,
 
-		(async () => {
-			try {
-				setLoading(true);
-				const data = await getAllUsersAdmin();
-				if (!cancelled) setUsers(Array.isArray(data) ? data : []);
-			} catch (err) {
-				showError?.(err?.response?.data?.message || "Failed to load users.");
-			} finally {
-				if (!cancelled) setLoading(false);
-			}
-		})();
+		pageSize,
+		pageCount,
+		safePage,
+		startIndex,
+		endIndex,
+		total,
 
-		return () => {
-			cancelled = true;
-		};
-	}, [showError]);
+		setPage,
+		setPageSize,
 
-	const getAvatarSrc = (u) => {
-		// supports { avatarUrl: { url, alt } } and also a plain string (just in case)
-		if (!u) return "";
-		if (typeof u.avatarUrl === "string") return u.avatarUrl;
-		return u.avatarUrl?.url || "";
-	};
+		toggleAdmin,
 
-	const getDisplayName = (u) => {
-		const first = u?.name?.first || "";
-		const last = u?.name?.last || "";
-		const full = `${first} ${last}`.trim();
-		return full || "—";
-	};
-
-	const handleToggleAdmin = async (u) => {
-		const next = !u.isAdmin;
-
-		// optimistic UI
-		setUsers((prev) =>
-			prev.map((x) => (x._id === u._id ? { ...x, isAdmin: next } : x))
-		);
-
-		try {
-			const updated = await setUserAdminStatus(u._id, { isAdmin: next });
-			setUsers((prev) => prev.map((x) => (x._id === u._id ? updated : x)));
-			showSuccess?.(next ? "User promoted to admin." : "Admin rights removed.");
-		} catch (err) {
-			// rollback
-			setUsers((prev) => prev.map((x) => (x._id === u._id ? u : x)));
-			showError?.(err?.response?.data?.message || "Failed to update user.");
-		}
-	};
-
-	const openDelete = (u) => {
-		setDeleteTarget(u);
-		setDeleteOpen(true);
-	};
-
-	const closeDelete = () => {
-		if (deleting) return;
-		setDeleteOpen(false);
-		setDeleteTarget(null);
-	};
-
-	const confirmDelete = async () => {
-		if (!deleteTarget?._id) return;
-
-		const id = deleteTarget._id;
-		const prev = users;
-
-		// optimistic remove
-		setUsers((cur) => cur.filter((u) => u._id !== id));
-
-		try {
-			setDeleting(true);
-			await deleteUserAdmin(id);
-			showSuccess?.("User deleted.");
-			closeDelete();
-		} catch (err) {
-			setUsers(prev); // rollback
-			showError?.(err?.response?.data?.message || "Failed to delete user.");
-		} finally {
-			setDeleting(false);
-		}
-	};
-
-	// ✅ Filtering (driven by TopBar search query)
-	const q = (query || "").trim().toLowerCase();
-
-	const filteredUsers = useMemo(() => {
-		if (!q) return users;
-
-		return users.filter((u) => {
-			const first = (u?.name?.first || "").toLowerCase();
-			const last = (u?.name?.last || "").toLowerCase();
-			const email = (u?.email || "").toLowerCase();
-			const phone = (u?.phone || "").toLowerCase();
-			const roleText = u?.isAdmin ? "admin" : "user";
-			const fullName = `${first} ${last}`.trim();
-
-			return (
-				fullName.includes(q) ||
-				first.includes(q) ||
-				last.includes(q) ||
-				email.includes(q) ||
-				phone.includes(q) ||
-				roleText.includes(q)
-			);
-		});
-	}, [users, q]);
+		deleteOpen,
+		deleteTarget,
+		deleting,
+		openDelete,
+		closeDelete,
+		confirmDelete,
+	} = useAdminUsers({ query, showSuccess, showError, setQuery });
 
 	if (!isAdmin) {
 		return (
@@ -184,32 +60,12 @@ export default function AdminUsersPage() {
 		);
 	}
 
-	// ✅ Pagination
-	const PAGE_SIZE_OPTIONS = [6, 12, 24];
-
-	const [page, setPage] = useState(1);
-	const [pageSize, setPageSize] = useState(6);
-
-	useEffect(() => {
-		setPage(1);
-	}, [q, pageSize]);
-
-	const total = filteredUsers.length;
-	const pageCount = Math.max(1, Math.ceil(total / pageSize));
-	const safePage = Math.min(page, pageCount);
-
-	const startIndex = (safePage - 1) * pageSize;
-	const endIndex = Math.min(startIndex + pageSize, total);
-
-	const pagedUsers = filteredUsers.slice(startIndex, endIndex);
-
 	return (
 		<Box
 			sx={{
 				position: "relative",
 				p: { xs: 2, md: 3 },
 				maxWidth: 1100,
-
 				"&:before": {
 					content: '""',
 					position: "absolute",
@@ -234,70 +90,27 @@ export default function AdminUsersPage() {
 				"& > *": { position: "relative", zIndex: 1 },
 			}}
 		>
-			<Stack spacing={0.5} sx={{ mb: 2 }}>
-				<Typography variant="h4" sx={{ fontWeight: 700 }}>
-					Admin CRM
-				</Typography>
-				<Typography variant="body2" color="text.secondary">
-					Search by name, email, phone, or “admin”.
-				</Typography>
+			<UsersHeader
+				loading={loading}
+				filteredCount={filteredUsers.length}
+				totalCount={users.length}
+				q={q}
+				query={query}
+			/>
 
-				{!loading && (
-					<Typography variant="caption" color="text.secondary">
-						Showing {filteredUsers.length} of {users.length} users
-						{q ? ` for “${query}”` : ""}
-					</Typography>
-				)}
-			</Stack>
-
-			{/* ✅ Pagination controls */}
-			{!loading && filteredUsers.length > 0 && (
-				<Stack
-					direction={{ xs: "column", sm: "row" }}
-					alignItems={{ xs: "stretch", sm: "center" }}
-					justifyContent="space-between"
-					spacing={1.25}
-					sx={{ mb: 1.5 }}
-				>
-					<Typography variant="caption" color="text.secondary">
-						Showing {startIndex + 1}-{endIndex} of {total}
-						{q ? ` for “${query}”` : ""}
-					</Typography>
-
-					<Stack
-						direction={{ xs: "column", sm: "row" }}
-						spacing={1.25}
-						alignItems={{ xs: "stretch", sm: "center" }}
-						justifyContent="flex-end"
-					>
-						<FormControl size="small" sx={{ minWidth: { xs: "100%", sm: 160 } }}>
-							<InputLabel id="admin-users-page-size-label">Per page</InputLabel>
-							<Select
-								labelId="admin-users-page-size-label"
-								value={pageSize}
-								label="Per page"
-								onChange={(e) => setPageSize(Number(e.target.value))}
-							>
-								{PAGE_SIZE_OPTIONS.map((n) => (
-									<MenuItem key={n} value={n}>
-										{n}
-									</MenuItem>
-								))}
-							</Select>
-						</FormControl>
-
-						<Box sx={{ display: "flex", justifyContent: { xs: "center", sm: "flex-end" } }}>
-							<Pagination
-								count={pageCount}
-								page={safePage}
-								onChange={(_, value) => setPage(value)}
-								color="primary"
-								shape="rounded"
-							/>
-						</Box>
-					</Stack>
-				</Stack>
-			)}
+			<UsersPaginationBar
+				loading={loading}
+				total={total}
+				startIndex={startIndex}
+				endIndex={endIndex}
+				q={q}
+				query={query}
+				pageSize={pageSize}
+				setPageSize={setPageSize}
+				pageCount={pageCount}
+				safePage={safePage}
+				setPage={setPage}
+			/>
 
 			<Card sx={{ borderRadius: 4 }}>
 				<CardContent sx={{ p: { xs: 1.5, sm: 2 } }}>
@@ -308,155 +121,30 @@ export default function AdminUsersPage() {
 							{q ? "No users match your search." : "No users found."}
 						</Typography>
 					) : isMobile ? (
-						// ✅ Mobile: cards
-						<Stack spacing={1.25}>
-							{pagedUsers.map((u) => {
-								const name = getDisplayName(u);
-								const isSelf = String(user?._id) === String(u._id);
-
-								return (
-									<Card
-										key={u._id}
-										variant="outlined"
-										sx={{ borderRadius: 3, overflow: "hidden" }}
-									>
-										<CardContent sx={{ p: 1.5 }}>
-											<Stack spacing={1}>
-												<Stack direction="row" alignItems="center" justifyContent="space-between">
-													<Stack direction="row" spacing={1.25} alignItems="center" sx={{ minWidth: 0 }}>
-														<Avatar
-															src={getAvatarSrc(u)}
-															alt={name}
-															sx={{ width: 34, height: 34, flexShrink: 0 }}
-														/>
-														<Box sx={{ minWidth: 0 }}>
-															<Typography sx={{ fontWeight: 800 }} noWrap>
-																{name}
-															</Typography>
-															<Typography variant="body2" color="text.secondary" noWrap>
-																{u.email}
-															</Typography>
-														</Box>
-													</Stack>
-
-													<Tooltip title={isSelf ? "You can’t delete yourself" : "Delete user"}>
-														<span>
-															<IconButton onClick={() => openDelete(u)} disabled={isSelf} size="small">
-																<DeleteIcon fontSize="small" />
-															</IconButton>
-														</span>
-													</Tooltip>
-												</Stack>
-
-												{u.phone ? (
-													<Typography variant="body2" color="text.secondary">
-														Phone: {u.phone}
-													</Typography>
-												) : null}
-
-												<Divider />
-
-												<Stack direction="row" alignItems="center" justifyContent="space-between">
-													<Typography variant="body2" sx={{ fontWeight: 700 }}>
-														Admin
-													</Typography>
-													<Switch checked={!!u.isAdmin} onChange={() => handleToggleAdmin(u)} />
-												</Stack>
-											</Stack>
-										</CardContent>
-									</Card>
-								);
-							})}
-						</Stack>
+						<UsersMobileList
+							rows={pagedUsers}
+							currentUser={user}
+							onToggleAdmin={toggleAdmin}
+							onDelete={openDelete}
+						/>
 					) : (
-						// ✅ Desktop/tablet: table
-						<TableContainer sx={{ overflowX: "auto" }}>
-							<Table>
-								<TableHead>
-									<TableRow>
-										<TableCell>
-											<b>User</b>
-										</TableCell>
-										<TableCell>
-											<b>Email</b>
-										</TableCell>
-										<TableCell>
-											<b>Phone</b>
-										</TableCell>
-										<TableCell>
-											<b>Admin</b>
-										</TableCell>
-										<TableCell align="right">
-											<b>Delete</b>
-										</TableCell>
-									</TableRow>
-								</TableHead>
-
-								<TableBody>
-									{pagedUsers.map((u) => {
-										const name = getDisplayName(u);
-										const isSelf = String(user?._id) === String(u._id);
-
-										return (
-											<TableRow key={u._id}>
-												<TableCell>
-													<Stack direction="row" spacing={1.25} alignItems="center">
-														<Avatar
-															src={getAvatarSrc(u)}
-															alt={name}
-															sx={{ width: 30, height: 30 }}
-														/>
-														<Typography variant="body2" sx={{ fontWeight: 600 }}>
-															{name}
-														</Typography>
-													</Stack>
-												</TableCell>
-												<TableCell>{u.email}</TableCell>
-												<TableCell>{u.phone || "—"}</TableCell>
-												<TableCell>
-													<Switch checked={!!u.isAdmin} onChange={() => handleToggleAdmin(u)} />
-												</TableCell>
-												<TableCell align="right">
-													<Tooltip title={isSelf ? "You can’t delete yourself" : "Delete user"}>
-														<span>
-															<IconButton onClick={() => openDelete(u)} disabled={isSelf}>
-																<DeleteIcon />
-															</IconButton>
-														</span>
-													</Tooltip>
-												</TableCell>
-											</TableRow>
-										);
-									})}
-								</TableBody>
-							</Table>
-						</TableContainer>
+						<UsersTable
+							rows={pagedUsers}
+							currentUser={user}
+							onToggleAdmin={toggleAdmin}
+							onDelete={openDelete}
+						/>
 					)}
 				</CardContent>
 			</Card>
 
-			<Dialog open={deleteOpen} onClose={closeDelete} fullWidth maxWidth="xs">
-				<DialogTitle>Delete user?</DialogTitle>
-				<DialogContent>
-					<Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-						This will permanently delete <b>{deleteTarget?.email}</b>.
-					</Typography>
-				</DialogContent>
-				<DialogActions>
-					<Button onClick={closeDelete} disabled={deleting} sx={{ textTransform: "none" }}>
-						Cancel
-					</Button>
-					<Button
-						onClick={confirmDelete}
-						disabled={deleting}
-						variant="contained"
-						color="error"
-						sx={{ textTransform: "none" }}
-					>
-						{deleting ? "Deleting..." : "Delete"}
-					</Button>
-				</DialogActions>
-			</Dialog>
+			<DeleteUserDialog
+				open={deleteOpen}
+				onClose={closeDelete}
+				onConfirm={confirmDelete}
+				deleting={deleting}
+				targetEmail={deleteTarget?.email}
+			/>
 		</Box>
 	);
 }

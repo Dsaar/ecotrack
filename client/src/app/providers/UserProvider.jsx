@@ -8,10 +8,9 @@ import {
 
 const UserContext = createContext(null);
 
-// ✅ Choose ONE key and use it everywhere
-const TOKEN_KEY = "myToken"; // <- if your key is actually "my token", change to: "my token"
+const TOKEN_KEY = "myToken"; 
 
-// Match your backend JWT_EXPIRES_IN=4h
+//JWT_EXPIRES_IN=4h
 const INACTIVITY_MS = 4 * 60 * 60 * 1000; // 4 hours
 
 function safeParseJwt(token) {

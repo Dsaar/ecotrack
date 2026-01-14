@@ -1,5 +1,5 @@
 // src/features/dashboard/pages/admin/AdminSubmissionsPage.jsx
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import {
 	Box,
 	Card,
@@ -8,38 +8,22 @@ import {
 	Stack,
 	ToggleButton,
 	ToggleButtonGroup,
-	Table,
-	TableBody,
-	TableCell,
-	TableHead,
-	TableRow,
-	Chip,
 	Button,
-	Dialog,
-	DialogTitle,
-	DialogContent,
-	DialogActions,
-	TextField,
 	CircularProgress,
-	Link,
-	Divider,
-	TableContainer,
 	useMediaQuery,
 	useTheme,
 } from "@mui/material";
 import { useNavigate } from "react-router-dom";
 
 import { useSnackbar } from "../../../../app/providers/SnackBarProvider.jsx";
-import {
-	adminApproveSubmission,
-	adminListSubmissions,
-	adminRejectSubmission,
-} from "../../../../services/adminSubmissionsService.js";
 import { useUser } from "../../../../app/providers/UserProvider.jsx";
 
-function isLikelyImageUrl(url = "") {
-	return /\.(png|jpe?g|gif|webp|bmp|svg)$/i.test(url) || url.includes("picsum.photos");
-}
+import useAdminSubmissions from "./hooks/useAdminSubmissions.js";
+
+import SubmissionsMobileList from "./components/SubmissionsMobileList.jsx";
+import SubmissionsTable from "./components/SubmissionsTable.jsx";
+import SubmissionViewDialog from "./components/SubmissionViewDialog.jsx";
+import SubmissionRejectDialog from "./components/SubmissionRejectDialog.jsx";
 
 export default function AdminSubmissionsPage() {
 	const { user } = useUser();
@@ -49,21 +33,21 @@ export default function AdminSubmissionsPage() {
 	const theme = useTheme();
 	const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
 
+	// Guard: non-admins go back to dashboard
 	useEffect(() => {
 		if (user && !user.isAdmin) navigate("/dashboard");
 	}, [user, navigate]);
 
-	const [status, setStatus] = useState("pending");
-	const [items, setItems] = useState([]);
-	const [loading, setLoading] = useState(true);
-	const [actingId, setActingId] = useState(null);
+	// Data + actions
+	const { status, setStatus, rows, loading, actingId, load, approve, reject } =
+		useAdminSubmissions({ showSuccess, showError });
 
-	// reject dialog state
+	// Reject dialog state
 	const [rejectOpen, setRejectOpen] = useState(false);
 	const [rejectId, setRejectId] = useState(null);
 	const [rejectReason, setRejectReason] = useState("");
 
-	// ✅ view dialog state
+	// View dialog state
 	const [viewOpen, setViewOpen] = useState(false);
 	const [viewTarget, setViewTarget] = useState(null);
 
@@ -76,66 +60,11 @@ export default function AdminSubmissionsPage() {
 		setViewTarget(null);
 	};
 
-	// ---------- tonal helpers (theme-driven) ----------
-	const toneChipSx = (toneKey) => {
-		const tone = theme.palette?.tones?.[toneKey] || {};
-		return {
-			bgcolor: tone.bg || "transparent",
-			color: tone.fg || "text.primary",
-			border: "1px solid",
-			borderColor: tone.border || "transparent",
-			fontWeight: 800,
-		};
-	};
-
-	const StatusChip = ({ status }) => {
-		if (status === "approved") {
-			return <Chip size="small" label="Approved" sx={toneChipSx("green")} />;
-		}
-		if (status === "rejected") {
-			return <Chip size="small" label="Rejected" sx={toneChipSx("rejected")} />;
-		}
-		return <Chip size="small" label="Pending" sx={toneChipSx("amber")} />;
-	};
-
-	const load = async () => {
-		try {
-			setLoading(true);
-			const res = await adminListSubmissions({ status, page: 1, limit: 30 });
-			setItems(res.data?.items || []);
-		} catch (err) {
-			console.error("[AdminSubmissionsPage] load failed", err);
-			showError?.(err?.response?.data?.message || "Failed to load submissions.");
-		} finally {
-			setLoading(false);
-		}
-	};
-
-	useEffect(() => {
-		load();
-		// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, [status]);
-
-	const handleApprove = async (id) => {
-		try {
-			setActingId(id);
-			await adminApproveSubmission(id);
-			showSuccess?.("Submission approved.");
-			await load();
-		} catch (err) {
-			console.error("[AdminSubmissionsPage] approve failed", err);
-			showError?.(err?.response?.data?.message || "Failed to approve submission.");
-		} finally {
-			setActingId(null);
-		}
-	};
-
 	const openReject = (id) => {
 		setRejectId(id);
 		setRejectReason("");
 		setRejectOpen(true);
 	};
-
 	const closeReject = () => {
 		setRejectOpen(false);
 		setRejectId(null);
@@ -145,33 +74,16 @@ export default function AdminSubmissionsPage() {
 	const handleReject = async () => {
 		if (!rejectId) return;
 
+		// Note: If your hook swallows errors internally, this will still close the dialog.
+		// If you want the dialog to stay open on error (like the original),
+		// make the hook rethrow after showError (or return a boolean).
 		try {
-			setActingId(rejectId);
-			await adminRejectSubmission(rejectId, rejectReason);
-			showSuccess?.("Submission rejected.");
+			await reject(rejectId, rejectReason);
 			closeReject();
-			await load();
-		} catch (err) {
-			console.error("[AdminSubmissionsPage] reject failed", err);
-			showError?.(err?.response?.data?.message || "Failed to reject submission.");
-		} finally {
-			setActingId(null);
+		} catch {
+			// keep dialog open if hook rethrows
 		}
 	};
-
-	const rows = useMemo(() => items, [items]);
-
-	// ✅ modal derived data
-	const viewMissionTitle = viewTarget?.missionId?.title || "—";
-	const viewUserName =
-		[viewTarget?.userId?.name?.first, viewTarget?.userId?.name?.last]
-			.filter(Boolean)
-			.join(" ") ||
-		viewTarget?.userId?.email ||
-		"—";
-
-	const viewAnswers = Array.isArray(viewTarget?.answers) ? viewTarget.answers : [];
-	const viewEvidence = Array.isArray(viewTarget?.evidenceUrls) ? viewTarget.evidenceUrls : [];
 
 	return (
 		<Box
@@ -179,15 +91,13 @@ export default function AdminSubmissionsPage() {
 				position: "relative",
 				p: { xs: 2, md: 3 },
 				maxWidth: 1200,
-
-				// ✅ Top gradient overlay (theme-driven)
 				"&:before": {
 					content: '""',
 					position: "absolute",
 					top: 0,
 					left: 0,
 					right: 0,
-					borderRadius:2,
+					borderRadius: 2,
 					height: { xs: 180, md: 220 },
 					background: `linear-gradient(
 						180deg,
@@ -195,7 +105,6 @@ export default function AdminSubmissionsPage() {
 						${theme.palette.tones?.green?.bg ?? "rgba(22,101,52,0.10)"} 45%,
 						transparent 85%
 					)`,
-					// smooth fade (no hard bottom edge)
 					maskImage:
 						"linear-gradient(to bottom, rgba(0,0,0,1) 0%, rgba(0,0,0,1) 60%, rgba(0,0,0,0) 100%)",
 					WebkitMaskImage:
@@ -212,13 +121,6 @@ export default function AdminSubmissionsPage() {
 			<Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
 				Review mission submissions and approve or reject them.
 			</Typography>
-
-			{/* ✅ Tonal panel / legend */}
-		{/* 	<Stack direction="row" spacing={1} flexWrap="wrap" sx={{ mb: 2 }}>
-				<Chip label="Approved" size="small" sx={toneChipSx("green")} />
-				<Chip label="Pending" size="small" sx={toneChipSx("amber")} />
-				<Chip label="Rejected" size="small" sx={toneChipSx("rejected")} />
-			</Stack> */}
 
 			<Stack
 				direction={{ xs: "column", sm: "row" }}
@@ -259,407 +161,37 @@ export default function AdminSubmissionsPage() {
 							No submissions found for this status.
 						</Typography>
 					) : isMobile ? (
-						// ✅ Mobile: cards list
-						<Stack spacing={1.25}>
-							{rows.map((sub) => {
-								const missionTitle = sub?.missionId?.title || "—";
-								const userName =
-									[sub?.userId?.name?.first, sub?.userId?.name?.last]
-										.filter(Boolean)
-										.join(" ") ||
-									sub?.userId?.email ||
-									"—";
-
-								const created = sub?.createdAt
-									? new Date(sub.createdAt).toLocaleString()
-									: "—";
-
-								const busy = actingId === sub._id;
-								const evidence = Array.isArray(sub?.evidenceUrls) ? sub.evidenceUrls : [];
-
-								return (
-									<Card key={sub._id} variant="outlined" sx={{ borderRadius: 2 }}>
-										<CardContent sx={{ p: 1.5 }}>
-											<Stack spacing={1}>
-												<Stack
-													direction="row"
-													alignItems="flex-start"
-													justifyContent="space-between"
-													spacing={1}
-												>
-													<Box sx={{ minWidth: 0 }}>
-														<Typography sx={{ fontWeight: 800 }} noWrap>
-															{missionTitle}
-														</Typography>
-														<Typography variant="body2" color="text.secondary" noWrap>
-															{userName}
-														</Typography>
-													</Box>
-
-													{/* ✅ toned status */}
-													<StatusChip status={sub.status} />
-												</Stack>
-
-												<Typography variant="caption" color="text.secondary">
-													Created: {created}
-												</Typography>
-
-												<Typography variant="body2" color="text.secondary">
-													Evidence: {evidence.length || 0} link{evidence.length === 1 ? "" : "s"}
-												</Typography>
-
-												<Stack direction="row" spacing={1} justifyContent="flex-end" flexWrap="wrap">
-													<Button
-														size="small"
-														variant="outlined"
-														onClick={() => openView(sub)}
-														sx={{ textTransform: "none" }}
-													>
-														View
-													</Button>
-
-													{status === "pending" ? (
-														<>
-															<Button
-																size="small"
-																variant="contained"
-																disabled={busy}
-																onClick={() => handleApprove(sub._id)}
-																sx={{
-																	textTransform: "none",
-																	bgcolor: "#166534",
-																	"&:hover": { bgcolor: "#14532d" },
-																}}
-															>
-																{busy ? "..." : "Approve"}
-															</Button>
-
-															<Button
-																size="small"
-																variant="outlined"
-																color="error"
-																disabled={busy}
-																onClick={() => openReject(sub._id)}
-																sx={{ textTransform: "none" }}
-															>
-																Reject
-															</Button>
-														</>
-													) : null}
-												</Stack>
-
-												{status === "rejected" && sub?.rejectionReason ? (
-													<Typography variant="caption" color="error">
-														Reason: {sub.rejectionReason}
-													</Typography>
-												) : null}
-											</Stack>
-										</CardContent>
-									</Card>
-								);
-							})}
-						</Stack>
+						<SubmissionsMobileList
+							rows={rows}
+							status={status}
+							actingId={actingId}
+							onApprove={approve}
+							onReject={openReject}
+							onView={openView}
+						/>
 					) : (
-						// ✅ Desktop/tablet: table (with safe overflow)
-						<TableContainer sx={{ overflowX: "auto" }}>
-							<Table size="small">
-								<TableHead>
-									<TableRow>
-										<TableCell>Mission</TableCell>
-										<TableCell>User</TableCell>
-										<TableCell>Status</TableCell>
-										<TableCell>Created</TableCell>
-										<TableCell>Evidence</TableCell>
-										<TableCell align="right">Actions</TableCell>
-									</TableRow>
-								</TableHead>
-
-								<TableBody>
-									{rows.map((sub) => {
-										const missionTitle = sub?.missionId?.title || "—";
-										const userName =
-											[sub?.userId?.name?.first, sub?.userId?.name?.last]
-												.filter(Boolean)
-												.join(" ") ||
-											sub?.userId?.email ||
-											"—";
-
-										const created = sub?.createdAt
-											? new Date(sub.createdAt).toLocaleString()
-											: "—";
-
-										const busy = actingId === sub._id;
-										const evidence = Array.isArray(sub?.evidenceUrls) ? sub.evidenceUrls : [];
-
-										return (
-											<TableRow key={sub._id} hover sx={{ verticalAlign: "top" }}>
-												<TableCell>{missionTitle}</TableCell>
-
-												<TableCell>
-													<Stack spacing={0.5}>
-														<Typography variant="body2">{userName}</Typography>
-														{sub?.userId?.email && (
-															<Typography variant="caption" color="text.secondary">
-																{sub.userId.email}
-															</Typography>
-														)}
-													</Stack>
-												</TableCell>
-
-												<TableCell>
-													<Stack spacing={0.5}>
-														{/* ✅ toned status */}
-														<StatusChip status={sub.status} />
-
-														{status === "rejected" && sub?.rejectionReason && (
-															<Typography variant="caption" color="error">
-																Reason: {sub.rejectionReason}
-															</Typography>
-														)}
-													</Stack>
-												</TableCell>
-
-												<TableCell>{created}</TableCell>
-
-												<TableCell>
-													{evidence.length === 0 ? (
-														<Typography variant="body2" color="text.secondary">
-															—
-														</Typography>
-													) : (
-														<Stack spacing={0.5}>
-															<Typography variant="body2">
-																{evidence.length} link{evidence.length > 1 ? "s" : ""}
-															</Typography>
-
-															{evidence.slice(0, 1).map((url) => (
-																<Link
-																	key={url}
-																	href={url}
-																	target="_blank"
-																	rel="noreferrer"
-																	variant="caption"
-																	sx={{ wordBreak: "break-all" }}
-																>
-																	Open
-																</Link>
-															))}
-
-															{evidence.length > 1 && (
-																<Typography variant="caption" color="text.secondary">
-																	+{evidence.length - 1} more
-																</Typography>
-															)}
-														</Stack>
-													)}
-												</TableCell>
-
-												<TableCell align="right">
-													<Stack direction="row" spacing={1} justifyContent="flex-end">
-														<Button
-															size="small"
-															variant="outlined"
-															onClick={() => openView(sub)}
-															sx={{ textTransform: "none" }}
-														>
-															View
-														</Button>
-
-														{status === "pending" ? (
-															<>
-																<Button
-																	size="small"
-																	variant="contained"
-																	disabled={busy}
-																	onClick={() => handleApprove(sub._id)}
-																	sx={{
-																		textTransform: "none",
-																		bgcolor: "#166534",
-																		"&:hover": { bgcolor: "#14532d" },
-																	}}
-																>
-																	{busy ? "..." : "Approve"}
-																</Button>
-
-																<Button
-																	size="small"
-																	variant="outlined"
-																	color="error"
-																	disabled={busy}
-																	onClick={() => openReject(sub._id)}
-																	sx={{ textTransform: "none" }}
-																>
-																	Reject
-																</Button>
-															</>
-														) : (
-															<Typography variant="body2" color="text.secondary">
-																—
-															</Typography>
-														)}
-													</Stack>
-												</TableCell>
-											</TableRow>
-										);
-									})}
-								</TableBody>
-							</Table>
-						</TableContainer>
+						<SubmissionsTable
+							rows={rows}
+							status={status}
+							actingId={actingId}
+							onApprove={approve}
+							onReject={openReject}
+							onView={openView}
+						/>
 					)}
 				</CardContent>
 			</Card>
 
-			{/* ✅ View dialog */}
-			<Dialog open={viewOpen} onClose={closeView} fullWidth maxWidth="md">
-				<DialogTitle>Submission details</DialogTitle>
-				<DialogContent>
-					<Stack spacing={2} sx={{ mt: 1 }}>
-						<Stack spacing={0.5}>
-							<Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
-								{viewMissionTitle}
-							</Typography>
-							<Typography variant="body2" color="text.secondary">
-								Submitted by: {viewUserName}
-							</Typography>
-							{viewTarget?.createdAt && (
-								<Typography variant="caption" color="text.secondary">
-									Created: {new Date(viewTarget.createdAt).toLocaleString()}
-								</Typography>
-							)}
-						</Stack>
+			<SubmissionViewDialog open={viewOpen} onClose={closeView} submission={viewTarget} />
 
-						<Divider />
-
-						<Box>
-							<Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 1 }}>
-								Answers
-							</Typography>
-
-							{viewAnswers.length === 0 ? (
-								<Typography variant="body2" color="text.secondary">
-									No answers provided.
-								</Typography>
-							) : (
-								<Stack spacing={1}>
-									{viewAnswers.map((a, idx) => (
-										<Box
-											key={`${a.key}-${idx}`}
-											sx={{
-												border: "1px solid",
-												borderColor: "divider",
-												borderRadius: 2,
-												p: 1.5,
-											}}
-										>
-											<Typography variant="caption" color="text.secondary">
-												{a.key}
-											</Typography>
-											<Typography variant="body2" sx={{ fontWeight: 600 }}>
-												{String(a.value)}
-											</Typography>
-										</Box>
-									))}
-								</Stack>
-							)}
-						</Box>
-
-						<Divider />
-
-						<Box>
-							<Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 1 }}>
-								Evidence
-							</Typography>
-
-							{viewEvidence.length === 0 ? (
-								<Typography variant="body2" color="text.secondary">
-									No evidence URLs provided.
-								</Typography>
-							) : (
-								<Stack spacing={2}>
-									{viewEvidence.map((url) => (
-										<Box
-											key={url}
-											sx={{
-												border: "1px solid",
-												borderColor: "divider",
-												borderRadius: 2,
-												overflow: "hidden",
-											}}
-										>
-											{isLikelyImageUrl(url) ? (
-												<Box
-													component="img"
-													src={url}
-													alt="Evidence"
-													sx={{
-														width: "100%",
-														maxHeight: 360,
-														objectFit: "cover",
-														display: "block",
-														bgcolor: "action.hover",
-													}}
-													onError={(e) => {
-														e.currentTarget.style.display = "none";
-													}}
-												/>
-											) : null}
-
-											<Box sx={{ p: 1.5 }}>
-												<Link
-													href={url}
-													target="_blank"
-													rel="noreferrer"
-													variant="body2"
-													sx={{ wordBreak: "break-all" }}
-												>
-													{url}
-												</Link>
-											</Box>
-										</Box>
-									))}
-								</Stack>
-							)}
-						</Box>
-					</Stack>
-				</DialogContent>
-				<DialogActions>
-					<Button onClick={closeView} sx={{ textTransform: "none" }}>
-						Close
-					</Button>
-				</DialogActions>
-			</Dialog>
-
-			{/* Reject dialog */}
-			<Dialog open={rejectOpen} onClose={closeReject} fullWidth maxWidth="sm">
-				<DialogTitle>Reject submission</DialogTitle>
-				<DialogContent>
-					<Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-						Add an optional reason. (Saved as <code>rejectionReason</code>.)
-					</Typography>
-					<TextField
-						label="Reason (optional)"
-						value={rejectReason}
-						onChange={(e) => setRejectReason(e.target.value)}
-						fullWidth
-						multiline
-						minRows={3}
-					/>
-				</DialogContent>
-				<DialogActions>
-					<Button onClick={closeReject} sx={{ textTransform: "none" }}>
-						Cancel
-					</Button>
-					<Button
-						onClick={handleReject}
-						color="error"
-						variant="contained"
-						sx={{ textTransform: "none" }}
-						disabled={actingId === rejectId}
-					>
-						{actingId === rejectId ? "Rejecting..." : "Reject"}
-					</Button>
-				</DialogActions>
-			</Dialog>
+			<SubmissionRejectDialog
+				open={rejectOpen}
+				onClose={closeReject}
+				reason={rejectReason}
+				onReasonChange={setRejectReason}
+				onConfirm={handleReject}
+				loading={actingId === rejectId}
+			/>
 		</Box>
 	);
 }
