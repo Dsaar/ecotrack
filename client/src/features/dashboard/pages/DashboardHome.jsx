@@ -1,5 +1,4 @@
 // src/features/dashboard/pages/DashboardHome.jsx
-import { useEffect, useState } from "react";
 import {
 	Box,
 	Card,
@@ -12,72 +11,31 @@ import {
 	ListItem,
 	ListItemText,
 } from "@mui/material";
+
 import { useUser } from "../../../app/providers/UserProvider.jsx";
-import { getMySubmissions } from "../../../services/submissionsService.js";
 import LoadingSpinner from "../../../components/common/LoadingSpinner.jsx";
 import TonePanel from "../components/TonePanel.jsx";
 
-function DashboardHome() {
+import useDashboardHome from "../home/hooks/useDashboardHome.js";
+import { formatWhen } from "../home/utils/dashboardHomeHelpers.js";
+
+export default function DashboardHome() {
 	const { user } = useUser();
-	const [submissions, setSubmissions] = useState([]);
-	const [loading, setLoading] = useState(true);
-	const [error, setError] = useState("");
 
-	useEffect(() => {
-		let cancelled = false;
+	const {
+		submissions,
+		loading,
+		error,
+		totalSubmissions,
+		pendingSubmissions,
+		approvedSubmissions,
+		lastSubmission,
+		latestTone,
+	} = useDashboardHome();
 
-		async function load() {
-			try {
-				setLoading(true);
-				setError("");
-				const data = await getMySubmissions();
-				if (!cancelled) {
-					setSubmissions(Array.isArray(data) ? data : data.submissions || []);
-				}
-			} catch (err) {
-				console.error("Failed to load submissions for dashboard:", err);
-				if (!cancelled) {
-					setError(
-						err?.response?.data?.message ||
-						"Failed to load your activity. Please try again."
-					);
-				}
-			} finally {
-				if (!cancelled) setLoading(false);
-			}
-		}
-
-		load();
-		return () => {
-			cancelled = true;
-		};
-	}, []);
-
-	// ---- Derived stats ----
+	// Derived from user (kept same)
 	const ecoPoints = user?.points ?? 0;
 	const favoritesCount = user?.favorites?.missions?.length ?? 0;
-
-	const totalSubmissions = submissions.length;
-	const pendingSubmissions = submissions.filter((s) => s.status === "pending").length;
-	const approvedSubmissions = submissions.filter((s) => s.status === "approved").length;
-
-	const lastSubmission = submissions.length > 0 ? submissions[0] : null;
-
-	// ✅ Map submission status -> TonePanel tone (from CustomThemeProvider palette.tones)
-	const getToneFromStatus = (status) => {
-		switch (status) {
-			case "approved":
-				return "green";
-			case "pending":
-				return "amber";
-			case "rejected":
-				return "rejected";
-			default:
-				return "blue";
-		}
-	};
-
-	const latestTone = getToneFromStatus(lastSubmission?.status);
 
 	if (loading) {
 		return <LoadingSpinner fullScreen={false} />;
@@ -89,8 +47,6 @@ function DashboardHome() {
 				p: { xs: 2, md: 3 },
 				maxWidth: 1100,
 				position: "relative",
-
-				// ✅ subtle top gradient (global dashboard vibe)
 				"&:before": {
 					content: '""',
 					position: "absolute",
@@ -131,12 +87,7 @@ function DashboardHome() {
 								Summary
 							</Typography>
 
-							{/* ✅ Tone tiles */}
-							<Stack
-								direction={{ xs: "column", sm: "row" }}
-								spacing={2}
-								sx={{ mb: 2 }}
-							>
+							<Stack direction={{ xs: "column", sm: "row" }} spacing={2} sx={{ mb: 2 }}>
 								<TonePanel tone="green" sx={{ flex: 1 }}>
 									<Typography variant="caption" sx={{ opacity: 0.9 }}>
 										Eco points
@@ -153,7 +104,6 @@ function DashboardHome() {
 									<Typography variant="h5" sx={{ fontWeight: 800, mt: 0.5 }}>
 										{totalSubmissions}
 									</Typography>
-									{/* small extra context */}
 									<Typography variant="caption" sx={{ opacity: 0.85 }}>
 										{approvedSubmissions} approved
 									</Typography>
@@ -210,7 +160,6 @@ function DashboardHome() {
 										Here&apos;s your most recent mission submission:
 									</Typography>
 
-									{/* ✅ status-colored latest tile using CustomThemeProvider tones */}
 									<TonePanel tone={latestTone} sx={{ mb: 2, color: "inherit" }}>
 										<Typography variant="subtitle1" sx={{ fontWeight: 800 }}>
 											{lastSubmission.missionId?.title ||
@@ -231,6 +180,7 @@ function DashboardHome() {
 												}
 												variant="outlined"
 											/>
+
 											{typeof lastSubmission.pointsAwarded === "number" && (
 												<Chip
 													size="small"
@@ -241,9 +191,7 @@ function DashboardHome() {
 										</Stack>
 
 										<Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-											{submissions[0].createdAt
-												? new Date(submissions[0].createdAt).toLocaleString()
-												: "Unknown date"}
+											{formatWhen(lastSubmission.createdAt)}
 										</Typography>
 									</TonePanel>
 
@@ -276,12 +224,7 @@ function DashboardHome() {
 						) : (
 							<List dense>
 								{submissions.slice(0, 5).map((sub) => {
-									const missionTitle =
-										sub.missionId?.title || sub.missionTitle || "Mission";
-									const createdAt = sub.createdAt
-										? new Date(sub.createdAt).toLocaleString()
-										: "Unknown date";
-
+									const missionTitle = sub.missionId?.title || sub.missionTitle || "Mission";
 									return (
 										<ListItem key={sub._id} sx={{ px: 0, alignItems: "flex-start" }}>
 											<ListItemText
@@ -307,7 +250,7 @@ function DashboardHome() {
 												}
 												secondary={
 													<Typography variant="body2" color="text.secondary">
-														{createdAt}
+														{formatWhen(sub.createdAt)}
 													</Typography>
 												}
 											/>
@@ -322,5 +265,3 @@ function DashboardHome() {
 		</Box>
 	);
 }
-
-export default DashboardHome;
