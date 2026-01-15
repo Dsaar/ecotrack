@@ -236,6 +236,68 @@ async function disconnect() {
 			await User.updateOne({ _id: userId }, { $inc: { points: sumPoints } });
 		}
 
+		// ======================================================
+		//  EXTRA: older approved submissions + checkins (charts)
+		// ======================================================
+
+
+		// ✅ EXTRA: create older approved checkins for the 6 new missions
+		const oldMissions = dbMissions.filter((m) =>
+			[
+				"turn-off-standby-power",
+				"recycle-a-bag",
+				"public-transport-trip",
+				"plant-based-meal",
+				"fix-leaky-faucet",
+				"neighborhood-litter-pickup",
+			].includes(m.slug)
+		);
+
+		// Spread over older months (adjust to match your chart labels)
+		const oldDates = [
+			new Date("2025-10-10T12:00:00.000Z"),
+			new Date("2025-10-28T12:00:00.000Z"),
+			new Date("2025-11-08T12:00:00.000Z"),
+			new Date("2025-11-24T12:00:00.000Z"),
+			new Date("2025-12-07T12:00:00.000Z"),
+			new Date("2025-12-20T12:00:00.000Z"),
+		];
+
+		const pickOne = (arr) => arr[Math.floor(Math.random() * arr.length)];
+
+		for (let i = 0; i < Math.min(oldMissions.length, 6); i++) {
+			const m = oldMissions[i];
+			const u = pickOne(regularUsers);
+			const admin = pickOne(admins);
+			const when = oldDates[i];
+
+			// Create APPROVED submission with explicit timestamps
+			const sub = await Submission.create({
+				userId: u._id,
+				missionId: m._id,
+				status: "approved",
+				evidenceUrls: pickN(evidenceSamples, 2),
+				reviewerId: admin._id,
+				reviewedAt: when,
+				pointsAwarded: m.points || 0,
+				createdAt: when, // ✅ ensures this shows older in "recent submissions" too if sorted
+			});
+
+			// Create matching checkin with explicit createdAt (critical for charts)
+			await Checkin.create({
+				userId: u._id,
+				missionId: m._id,
+				submissionId: sub._id,
+				points: m.points || 0,
+				impact: m.estImpact || { co2Kg: 0, waterL: 0, wasteKg: 0 },
+				createdAt: when, // ✅ chart time series reads from this
+			});
+
+			// Update user points so leaderboard matches
+			await User.updateOne({ _id: u._id }, { $inc: { points: m.points || 0 } });
+		}
+
+
 		// 7.4 Chat messages (at least 2 messages per user)
 		const chatDocs = [];
 		const chatUsers = [...regularUsers]; // keep chats between regular users

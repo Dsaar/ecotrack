@@ -58,6 +58,10 @@ The application is built as a modern full-stack system using React on the fronte
 * Manage users
 * View community statistics and impact data
 * Moderate platform activity
+* Email notifications:
+
+* Update on mission submission pending approval
+
 
 ---
 
@@ -81,9 +85,12 @@ The application is built as a modern full-stack system using React on the fronte
 * MongoDB with Mongoose
 * JWT authentication
 * Joi validation
+* bcryptjs (password hashing)
 * Nodemailer (SMTP)
 * Socket.IO (real-time chat)
-* Helmet, rate limiting, CORS
+* Helmet, express-rate-limit, CORS
+* Morgan (HTTP request logging)
+* dotenv (environment variables)
 
 ---
 
@@ -93,7 +100,6 @@ The application is built as a modern full-stack system using React on the fronte
 ecotrack/
 ├── client/        # React frontend (Vite)
 ├── server/        # Express backend
-├── screenshots/   # Optional documentation images
 ├── README.md
 ```
 
