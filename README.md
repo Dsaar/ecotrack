@@ -60,7 +60,7 @@ The application is built as a modern full-stack system using React on the fronte
 * Moderate platform activity
 * Email notifications:
 
-* Update on mission submission pending approval
+  * Update on mission submission pending approval
 
 
 ---
@@ -231,6 +231,41 @@ npm run seed:prod   # production (explicit flag)
 
 ---
 
+## 🔒 Security & Rate Limiting
+
+EcoTrack implements multiple security measures to protect the API and prevent abuse.
+
+### API & IP Rate Limiting
+
+The backend uses IP-based rate limiting via express-rate-limit to control the number of requests a client can make within a defined time window. Rate limits are configured conservatively to balance user experience and protection against abuse.
+
+
+Rate limiting is applied to:
+
+* Authentication endpoints (login, registration, token refresh)
+* Public API routes
+* Mission submission endpoints
+
+This helps prevent:
+
+* Brute-force login attempts
+* API abuse
+* Excessive automated requests
+* Denial-of-service style traffic spikes
+
+Each client IP is limited to a predefined number of requests per time window. When the limit is exceeded, the API responds with an appropriate HTTP error status.
+
+### Additional Security Measures
+
+* Helmet is used to set secure HTTP headers
+* JWT authentication with expiration and refresh tokens
+* Role-based access control (user vs admin)
+* Joi validation on all incoming request payloads
+* Password hashing using bcrypt
+* CORS configuration to restrict cross-origin requests
+
+These measures together provide a secure and production-ready backend architecture.
+---
 ## 📌 Notes
 
 * Email delivery depends on correct SMTP configuration
